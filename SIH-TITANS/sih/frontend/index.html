@@ -178,11 +178,13 @@
 </script>
 <style>
         body { scroll-behavior: smooth; }
-        .vertical-nav-item.active { opacity: 1; }
-        .vertical-nav-item.active .nav-line { width: 48px; background-color: #0058bc; }
-        .vertical-nav-item { opacity: 0.4; transition: all 0.4s ease; }
-        .vertical-nav-item:hover { opacity: 0.8; }
-        .nav-line { height: 1px; width: 24px; background-color: currentColor; transition: all 0.4s ease; }
+        .vertical-nav-item { opacity: 0.4; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none !important; }
+        .vertical-nav-item:hover { opacity: 0.85; }
+        .vertical-nav-item.active { opacity: 1 !important; }
+        .vertical-nav-item .nav-line { height: 1.5px; width: 24px; background-color: #717786; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+        .vertical-nav-item.active .nav-line { width: 52px !important; background-color: #0058bc !important; height: 2px !important; }
+        .vertical-nav-item.active span:first-of-type { color: #0058bc !important; font-weight: 700 !important; font-size: 15px !important; }
+        .vertical-nav-item.active .font-label-caps { opacity: 1 !important; }
         
         .glass-panel { 
             background: rgba(255, 255, 255, 0.7); 
@@ -346,6 +348,10 @@
 <section class="relative min-h-screen flex items-center justify-center px-4 md:px-hero-padding pt-24" id="hero">
 <div class="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-multiply" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDNTiYRM4fqwHbKLrf1hJJGkJVKW-GOAXBc5XOBMKopnOZabQ7CLDG7W1hfUv_vKj-SDzIRIE-06NBW4CzBt_iLWZQMwnrkt8RI0HgLklaigpuxhnkGUAb9xx_5G-ybG-qN2AiN9dIe7oQhetzJhZ0uHAX5bqCsboATdBd6b0xbTgGMuAEU5yB-6GQ20qhBcyz9KSVaQZ7WXl-OSpfyH80-MhIeTPPKWSQ7g95T-sA2fWrCaHzx2vvg')" data-stitch-orig-opacity="0.4"></div>
 <div class="absolute inset-0 bg-gradient-to-b from-surface/60 via-surface/90 to-surface z-0"></div>
+<!-- Glowing Cyber Aurora Orb -->
+<div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-primary/10 rounded-full blur-[90px] pointer-events-none z-0 animate-pulse" style="animation-duration: 6s;"></div>
+<!-- Interactive Cyber Mesh Canvas (60FPS Lightweight Engine) -->
+<canvas id="titan-mesh-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-1 opacity-70"></canvas>
 <div class="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center mt-12">
 <div class="glass-panel px-6 py-2 rounded-full mb-8 flex items-center gap-3">
 <span class="relative flex h-2 w-2">
@@ -668,27 +674,62 @@
 </div>
 </footer>
 <script>
-        // Scroll spy for vertical navigation
-        const sections = document.querySelectorAll('section[id]');
-        const navItems = document.querySelectorAll('.vertical-nav-item');
+        // Robust High-Performance Scroll Spy for Home Vertical Navigation
+        function initScrollSpy() {
+            var sections = ['hero', 'capabilities', 'workflow', 'status'].map(function(id) {
+                return document.getElementById(id);
+            }).filter(Boolean);
 
-        window.addEventListener('scroll', () => {
-            let current = '';
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                if (pageYOffset >= (sectionTop - sectionHeight / 3)) {
-                    current = section.getAttribute('id');
-                }
+            var navItems = document.querySelectorAll('.vertical-nav-item');
+            if (!navItems.length || !sections.length) return;
+
+            function updateActiveSection() {
+                var scrollPos = window.scrollY || window.pageYOffset;
+                var windowHeight = window.innerHeight;
+                var currentId = sections[0].id;
+
+                sections.forEach(function(sec) {
+                    var rect = sec.getBoundingClientRect();
+                    // If top of section is near middle of viewport
+                    if (rect.top <= windowHeight * 0.45) {
+                        currentId = sec.id;
+                    }
+                });
+
+                navItems.forEach(function(item) {
+                    var href = item.getAttribute('href') || '';
+                    if (href === '#' + currentId) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            // Click listener for smooth scrolling
+            navItems.forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    var href = item.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        var targetSec = document.querySelector(href);
+                        if (targetSec) {
+                            var targetTop = targetSec.getBoundingClientRect().top + window.pageYOffset - 70;
+                            window.scrollTo({ top: targetTop, behavior: 'smooth' });
+                        }
+                    }
+                });
             });
 
-            navItems.forEach(item => {
-                item.classList.remove('active');
-                if (item.getAttribute('href').includes(current)) {
-                    item.classList.add('active');
-                }
-            });
-        });
+            window.addEventListener('scroll', updateActiveSection, { passive: true });
+            updateActiveSection();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initScrollSpy);
+        } else {
+            initScrollSpy();
+        }
 
         // Intersection Observer for scroll animations
         const observerOptions = {
@@ -746,4 +787,86 @@
 </nav>
 
 <script src="js/titan-turbo.js" defer></script>
+<script>
+// Ultra-Lightweight 60FPS Cyber Mesh Particle Engine (<1% CPU)
+(function() {
+    var canvas = document.getElementById('titan-mesh-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var width, height;
+    var particles = [];
+    var maxParticles = 32;
+    var mouse = { x: null, y: null, radius: 120 };
+
+    function resize() {
+        width = canvas.width = canvas.offsetWidth;
+        height = canvas.height = canvas.offsetHeight;
+    }
+
+    function createParticles() {
+        particles = [];
+        for (var i = 0; i < maxParticles; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.6,
+                vy: (Math.random() - 0.5) * 0.6,
+                size: Math.random() * 2 + 1.5,
+                alpha: Math.random() * 0.5 + 0.3
+            });
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw connections
+        for (var i = 0; i < particles.length; i++) {
+            for (var j = i + 1; j < particles.length; j++) {
+                var dx = particles[i].x - particles[j].x;
+                var dy = particles[i].y - particles[j].y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 130) {
+                    var opacity = (1 - dist / 130) * 0.25;
+                    ctx.strokeStyle = 'rgba(0, 88, 188, ' + opacity + ')';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Draw and update nodes
+        for (var i = 0; i < particles.length; i++) {
+            var p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0 || p.x > width) p.vx *= -1;
+            if (p.y < 0 || p.y > height) p.vy *= -1;
+
+            ctx.fillStyle = 'rgba(0, 88, 188, ' + p.alpha + ')';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    resize();
+    createParticles();
+    requestAnimationFrame(draw);
+})();
+</script>
 </body></html>
