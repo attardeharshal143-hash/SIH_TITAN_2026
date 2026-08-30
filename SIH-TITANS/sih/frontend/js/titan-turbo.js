@@ -71,6 +71,11 @@
                 currentMain.className = newMain.className;
                 currentMain.id = newMain.id;
                 currentMain.style.opacity = '1';
+            // Remove left timeline on non-home pages
+            var existingTimeline = document.querySelector('nav.fixed.left-8');
+            if (existingTimeline && !url.endsWith('index.html') && !url.endsWith('/')) {
+                existingTimeline.remove();
+            }
 
                 // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'instant' });
@@ -110,20 +115,34 @@
         var path = new URL(url, window.location.origin).pathname;
         if (path === '/' || path === '') path = '/index.html';
 
-        document.querySelectorAll('a').forEach(function(a) {
+        // 1. Update Desktop Top Navbar active pill & blue underline
+        document.querySelectorAll('.titan-nav-link').forEach(function(a) {
             try {
                 var aPath = new URL(a.href, window.location.origin).pathname;
                 if (aPath === '/' || aPath === '') aPath = '/index.html';
-                
-                // Desktop nav pill
-                if (a.classList.contains('titan-nav-link')) {
-                    if (aPath === path) {
-                        a.classList.add('text-primary', 'font-bold', 'bg-primary/10');
-                        a.classList.remove('text-on-surface-variant');
-                    } else {
-                        a.classList.remove('text-primary', 'font-bold', 'bg-primary/10');
-                        a.classList.add('text-on-surface-variant');
-                    }
+
+                var isActive = (aPath === path);
+                if (isActive) {
+                    a.className = 'titan-nav-link text-primary font-semibold border-b-2 border-primary rounded-lg px-3 py-1.5 transition-all duration-200';
+                } else {
+                    a.className = 'titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5';
+                }
+            } catch(e) {}
+        });
+
+        // 2. Update Mobile Floating Dock active item
+        document.querySelectorAll('nav.md\\:hidden a, nav.fixed.bottom-4 a').forEach(function(a) {
+            try {
+                var aPath = new URL(a.href, window.location.origin).pathname;
+                if (aPath === '/' || aPath === '') aPath = '/index.html';
+
+                var isActive = (aPath === path);
+                if (isActive) {
+                    a.classList.add('text-primary', 'font-bold');
+                    a.classList.remove('text-on-surface-variant');
+                } else {
+                    a.classList.remove('text-primary', 'font-bold');
+                    a.classList.add('text-on-surface-variant');
                 }
             } catch(e) {}
         });
