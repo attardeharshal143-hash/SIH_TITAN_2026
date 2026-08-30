@@ -1,0 +1,198 @@
+{
+  "report_id": "REP-20260829184604-bf293b",
+  "report_type": "Enterprise IPsec Security Audit & Compliance Report",
+  "report_name": "Audit Analysis - Live_Capture_Default.pcap",
+  "pcap_file": "Live_Capture_Default.pcap",
+  "generated_at": "2026-08-29T18:46:04.920308Z",
+  "generated_date_str": "Aug 29, 2026, 18:46 UTC",
+  "status": "Completed",
+  "executive_summary": {
+    "security_grade": "A+",
+    "compliance_status": "COMPLIANT (Strong IPsec Security Posture)",
+    "risk_score": 10,
+    "risk_level": "LOW",
+    "summary_text": "Traffic trace Live_Capture_Default.pcap was evaluated by the TITAN Inspection Engine. Security posture rated Grade A+ with a normalized risk index of 10/100."
+  },
+  "traffic_summary": {
+    "packets_analyzed": 1,
+    "esp_packets": 1,
+    "ah_packets": 0,
+    "ike_candidates": 0,
+    "tcp_packets": 0,
+    "udp_packets": 0,
+    "icmp_packets": 0,
+    "dns_packets": 0
+  },
+  "cryptographic_analysis": {
+    "encryption_enforced": true,
+    "authentication_only_ah": false,
+    "ike_negotiation_captured": false,
+    "distinct_spis": [
+      "0xc743e05b"
+    ],
+    "spi_count": 1
+  },
+  "leakage_assessment": {
+    "cleartext_packets": 0,
+    "leakage_percentage": 0.0,
+    "leaked_protocols": []
+  },
+  "anti_replay_audit": {
+    "sequence_integrity": "VERIFIED",
+    "replay_risk": "LOW"
+  },
+  "mtu_fragmentation_audit": {
+    "avg_packet_size": 170,
+    "max_packet_size": 170,
+    "fragmentation_risk": "LOW"
+  },
+  "encrypted_traffic_analysis": {
+    "application_category": "Interactive Shell / VoIP / Command Stream",
+    "traffic_pattern": "Low Latency / Fixed Size Frames",
+    "eta_confidence": 94.5,
+    "avg_packet_size_bytes": 170.0,
+    "packet_size_std_dev": 0.0,
+    "burstiness_index": 0.0,
+    "inferred_behavior": "Continuous stream of small, fixed-size encrypted frames indicative of interactive management sessions or voice-over-IP."
+  },
+  "advanced_security_audit": {
+    "ike_psk_audit": {
+      "ike_version_detected": "Established / Pre-negotiated IKEv2",
+      "exchange_mode": "Main Mode / IKEv2 CREATE_CHILD_SA",
+      "psk_vulnerability_risk": "LOW (No IKEv1 Aggressive Mode Hash Exposure)",
+      "identity_protection": "ENCRYPTED (Identity concealed in IKE_AUTH)",
+      "aggressive_mode_detected": false,
+      "details": "No IKEv1 Aggressive Mode cleartext hash exposures detected in capture stream."
+    },
+    "cryptographic_downgrade_audit": {
+      "overall_status": "SECURE",
+      "checks": [
+        {
+          "check": "Obsolete Cipher Downgrade (DES / 3DES / RC4)",
+          "status": "SECURE",
+          "severity": "INFO",
+          "description": "No legacy 56-bit or 168-bit symmetric ciphers detected. ESP encapsulation active."
+        },
+        {
+          "check": "Cryptographic Hash Collision (MD5 / SHA-1)",
+          "status": "SECURE",
+          "severity": "INFO",
+          "description": "No deprecated MD5/SHA-1 truncated MAC headers identified in active ESP frames."
+        },
+        {
+          "check": "Diffie-Hellman Group Strength (Logjam Resistance)",
+          "status": "SECURE",
+          "severity": "INFO",
+          "description": "Key exchanges adhere to modern DH Group 14+ (2048-bit MODP) or ECP Group 19 (Curve25519)."
+        }
+      ]
+    },
+    "pqc_readiness": {
+      "pqc_score": 85,
+      "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)",
+      "cnsa_2_0_compliant": true,
+      "recommendations": [
+        "Payload uses high-entropy 256-bit ESP encapsulation, offering 128-bit security against Grover's quantum search algorithm.",
+        "To achieve 100% PQC compliance, implement RFC 9370 hybrid IKEv2 key exchanges incorporating ML-KEM (Kyber-768/1024) alongside classical ECDH."
+      ]
+    },
+    "mitre_attack_mapping": [
+      {
+        "technique_id": "M1037",
+        "technique_name": "Filter Network Traffic",
+        "tactic": "Defensive Mitigation (Compliant)",
+        "severity": "INFO",
+        "finding_ref": "100% of traffic is encapsulated inside encrypted ESP tunnel with zero bypass leaks.",
+        "mitigation": "Current network security architecture adheres to defensive baselines."
+      }
+    ],
+    "siem_event": {
+      "event_timestamp": "2026-08-29T18:46:04.920522Z",
+      "vendor": "TITAN Security Intelligence",
+      "product": "IPsec VPN Analyzer",
+      "event_type": "AUDIT_TELEMETRY",
+      "security_grade": "A+",
+      "risk_score": 10,
+      "total_packets": 1,
+      "esp_packets": 1,
+      "leakage_packets": 0,
+      "mitre_technique_ids": [
+        "M1037"
+      ],
+      "pqc_score": 85,
+      "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
+    }
+  },
+  "pqc_readiness": {
+    "pqc_score": 85,
+    "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)",
+    "cnsa_2_0_compliant": true,
+    "recommendations": [
+      "Payload uses high-entropy 256-bit ESP encapsulation, offering 128-bit security against Grover's quantum search algorithm.",
+      "To achieve 100% PQC compliance, implement RFC 9370 hybrid IKEv2 key exchanges incorporating ML-KEM (Kyber-768/1024) alongside classical ECDH."
+    ]
+  },
+  "mitre_attack_mapping": [
+    {
+      "technique_id": "M1037",
+      "technique_name": "Filter Network Traffic",
+      "tactic": "Defensive Mitigation (Compliant)",
+      "severity": "INFO",
+      "finding_ref": "100% of traffic is encapsulated inside encrypted ESP tunnel with zero bypass leaks.",
+      "mitigation": "Current network security architecture adheres to defensive baselines."
+    }
+  ],
+  "siem_event": {
+    "event_timestamp": "2026-08-29T18:46:04.920522Z",
+    "vendor": "TITAN Security Intelligence",
+    "product": "IPsec VPN Analyzer",
+    "event_type": "AUDIT_TELEMETRY",
+    "security_grade": "A+",
+    "risk_score": 10,
+    "total_packets": 1,
+    "esp_packets": 1,
+    "leakage_packets": 0,
+    "mitre_technique_ids": [
+      "M1037"
+    ],
+    "pqc_score": 85,
+    "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
+  },
+  "endpoints": {
+    "source_ips": [
+      "10.10.10.1"
+    ],
+    "destination_ips": [
+      "10.10.10.2"
+    ]
+  },
+  "protocols": [
+    "ESP"
+  ],
+  "ml_analysis": {
+    "model": "Random Forest Classifier",
+    "total_analyzed": 1,
+    "predicted_esp_packets": 1,
+    "predicted_non_esp_packets": 0,
+    "average_confidence": 100.0
+  },
+  "security_assessment": {
+    "security_grade": "A+",
+    "risk_score": 10,
+    "risk_level": "LOW",
+    "findings": [
+      "ESP Payload Encryption Verified: 1 encrypted frames (100.0% of capture).",
+      "Full Encapsulation: 100% of captured traffic is encapsulated within secure IPsec tunnel.",
+      "Established Tunnel Trace: IKE initial negotiation phase was completed prior to packet capture.",
+      "Zero Cleartext Leakage: No plaintext transport protocols were observed bypassing the VPN tunnel.",
+      "MTU Headroom Optimal: Average packet length is 170 bytes (Max: 170 bytes), avoiding fragmentation.",
+      "Anti-Replay Protection: Sequence tracking verified across 1 active Security Associations (SAs)."
+    ],
+    "remediations": [
+      "Maintain current cryptographic parameters and schedule regular re-keying intervals (e.g. every 8-24 hours)."
+    ],
+    "remediation_guidance": [
+      "Maintain current cryptographic parameters and schedule regular re-keying intervals (e.g. every 8-24 hours)."
+    ]
+  }
+}

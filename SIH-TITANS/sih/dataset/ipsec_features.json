@@ -1,0 +1,20 @@
+[
+  {
+    "packet_number": 1,
+    "time_offset": 1787871261.9791,
+    "packet_length": 170,
+    "ip_version": 4,
+    "ip_protocol_number": 50,
+    "src_ip": "10.10.10.1",
+    "dst_ip": "10.10.10.2",
+    "transport_protocol": "ESP",
+    "src_port": null,
+    "dst_port": null,
+    "ike_candidate": false,
+    "esp": true,
+    "ah": false,
+    "icmp": false,
+    "dns": false,
+    "info": "Encrypted Security Payload (ESP) SPI=0xc743e05b"
+  }
+]

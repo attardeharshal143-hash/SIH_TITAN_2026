@@ -1,0 +1,523 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Live Monitor - IPsec Analyzer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet">
+<style>
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-400-normal.woff2') format('woff2');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-500-normal.woff2') format('woff2');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-600-normal.woff2') format('woff2');
+            font-weight: 600;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-700-normal.woff2') format('woff2');
+            font-weight: 700;
+        }
+
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #faf9fe;
+            color: #1a1b1f;
+        }
+        
+        /* Custom scrollbar for the log */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .log-container::-webkit-scrollbar-thumb {
+            background-color: #e3e2e7;
+            border-radius: 4px;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(114, 254, 136, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(114, 254, 136, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(114, 254, 136, 0); }
+        }
+
+        .scrolling-line {
+            animation: scroll-up 20s linear infinite;
+        }
+        @keyframes scroll-up {
+            from { transform: translateY(0); }
+            to { transform: translateY(-50%); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#53e16f",
+                        "on-tertiary-container": "#fffbff",
+                        "outline": "#717786",
+                        "tertiary": "#4c4aca",
+                        "on-surface-variant": "#414755",
+                        "on-background": "#1a1b1f",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e3e2e7",
+                        "secondary": "#006e28",
+                        "on-error-container": "#93000a",
+                        "background": "#faf9fe",
+                        "surface-variant": "#e3e2e7",
+                        "inverse-surface": "#2f3034",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f4f3f8",
+                        "surface-dim": "#dad9df",
+                        "tertiary-fixed-dim": "#c2c1ff",
+                        "inverse-on-surface": "#f1f0f5",
+                        "surface-tint": "#005bc1",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e2dfff",
+                        "surface-bright": "#faf9fe",
+                        "secondary-container": "#6ffb85",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#6664e4",
+                        "surface-container": "#eeedf3",
+                        "primary": "#0058bc",
+                        "on-surface": "#1a1b1f",
+                        "on-tertiary-fixed": "#0c006a",
+                        "on-primary-fixed-variant": "#004493",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-high": "#e9e7ed",
+                        "secondary-fixed": "#72fe88",
+                        "on-primary-fixed": "#001a41",
+                        "inverse-primary": "#adc6ff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#faf9fe",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c1c6d7",
+                        "primary-container": "#0070eb",
+                        "on-secondary-fixed": "#002107",
+                        "on-primary-container": "#fefcff",
+                        "on-tertiary-fixed-variant": "#3631b4",
+                        "on-secondary-container": "#00732a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "lg": "24px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "gutter": "20px",
+                        "xxl": "48px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Geist"],
+                        "display": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "1.2", "letterSpacing": "0.03em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["15px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "display": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background min-h-screen flex flex-col pt-16">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b-[0.5px] border-outline-variant shadow-sm transition-all duration-200">
+<div class="flex justify-between items-center px-margin-desktop h-16 max-w-[1200px] mx-auto">
+<div class="font-headline-md text-headline-md font-bold text-on-surface"><span class="text-primary font-bold uppercase" style="font-family: Georgia, serif; font-size: 32px; letter-spacing: -0.8px;">王TITAN</span></div>
+<div class="hidden md:flex items-center space-x-lg" style="font-family: 'Times New Roman', Times, serif;">
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_5}}">Home</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_19}}">Analyzer</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_22}}">Reports</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="{{DATA:SCREEN:SCREEN_23}}">Live Monitor</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_16}}">About</a>
+</div>
+<div class="flex items-center space-x-md">
+<button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<a href="{{DATA:SCREEN:SCREEN_14}}" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors"><span class="material-symbols-outlined text-on-surface-variant" data-icon="settings">settings</span></a>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAwK-Ho5xEISSpz-qrSeon8rVywcf4XTjyX0pUIxRzQ6HbAQxdt7nwDJ_j9bPAZtYTfxrDnRT7Tc1k53l46QECgoTwERBr2WQ1zHBnr2OsCXcyBLH5IlwWkPbNvUmCpVGrG496QqXhYyWWlV5UqSXcMDEo3EnTqUnZCIQfr595s5kgUlDCVy8IPlphaJadOQS0_H2c2f2akKypMDZC8C7IOMB0OpaeU14j3KLg7vvRCaQ1nU8tj2jI">
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop py-xxl flex flex-col gap-lg">
+<!-- Header & Status -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md mb-md">
+<div>
+<h1 class="font-display text-display text-on-surface">Live Monitor</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-sm">Real-time IPsec tunnel telemetry and packet analysis.</p>
+</div>
+<div class="flex items-center gap-sm bg-surface-container-low border border-outline-variant rounded-full px-md py-sm shadow-sm backdrop-blur-md">
+<div class="w-3 h-3 rounded-full bg-secondary-fixed pulse-dot"></div>
+<span class="font-label-md text-label-md text-on-surface font-semibold tracking-wide">SYSTEM ONLINE</span>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg h-full">
+<!-- Left Column: Traffic Flow Map (Wide Card) -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col relative h-[400px]">
+<div class="p-lg border-b border-surface-variant flex justify-between items-center bg-surface-container-lowest/80 backdrop-blur-sm z-10">
+<h2 class="font-headline-md text-headline-md text-on-surface">Traffic Topology</h2>
+<div class="flex gap-sm">
+<span class="bg-surface-container px-3 py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant border border-outline-variant/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">public</span> Global Node
+                        </span>
+</div>
+</div>
+<div class="flex-grow relative bg-[#f8f9fa] overflow-hidden flex items-center justify-center">
+<!-- Abstract Network Viz Placeholder -->
+<div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#c1c6d7 1px, transparent 1px); background-size: 20px 20px;"></div>
+<img alt="Network Flow Map" class="w-full h-full object-cover opacity-80 mix-blend-multiply" data-alt="A highly detailed, ultra-modern vector illustration of a global network topology map on a pristine white background. The map features minimalist geographical outlines connected by glowing, precise blue and bright green data lines representing encrypted IPsec tunnels. The lighting is bright and diffuse, evoking a high-end, clean enterprise software interface. Soft shadows and subtle depth create a glassmorphism effect." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5CmUead4dw0yaI9iHuBJzUbKo7gGZt1yIjKcI_Pi4lYRC_VU44VZEVh1cFgsWmu6WgBn6IAi56vsnw2fgZX9-8WSXIry02S0P8cA06A_3-SjmXoTIbhZmJi6oFpee_KX1AexnMoxDApT_m1T0scsA1kuDJCKywqYO3TJziG8TyUlPsEh0IFC7PqK0FakTEdKOxSYqlskzHsMLssPRUJglfiYH2o8bmGsLOXhdQULePuwl6FDo7pwE">
+<!-- Simulated Nodes -->
+<div class="absolute top-1/3 left-1/4 w-4 h-4 bg-primary rounded-full shadow-[0_0_15px_rgba(0,88,188,0.5)]"></div>
+<div class="absolute top-1/2 right-1/3 w-4 h-4 bg-secondary-fixed rounded-full shadow-[0_0_15px_rgba(114,254,136,0.6)]"></div>
+<!-- SVG Overlay for animated paths (Static fallback for design) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
+<path class="opacity-50" d="M 25 33 C 50 20, 50 60, 66 50" fill="none" stroke="#0058bc" stroke-dasharray="1 1" stroke-width="0.2"></path>
+</svg>
+</div>
+</div>
+<!-- Right Column: Control Panel & Quick Stats -->
+<div class="md:col-span-4 flex flex-col gap-lg">
+<!-- Control Panel -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Capture Controls</h2>
+<div class="flex gap-md mb-md">
+<button class="flex-1 bg-primary text-on-primary font-label-md text-label-md py-2 rounded-lg flex items-center justify-center gap-xs hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span> Resume
+                        </button>
+<button class="flex-1 bg-surface-container text-on-surface font-label-md text-label-md py-2 rounded-lg flex items-center justify-center gap-xs hover:bg-surface-variant transition-colors border border-outline-variant/30">
+<span class="material-symbols-outlined text-[18px]">pause</span> Pause
+                        </button>
+</div>
+<div class="space-y-sm">
+<label class="flex items-center justify-between font-body-md text-body-md text-on-surface-variant cursor-pointer">
+<span class="">Auto-scroll feed</span>
+<div class="relative inline-block w-10 h-6">
+<input checked="" class="peer sr-only" type="checkbox">
+<div class="w-10 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</div>
+</label>
+<label class="flex items-center justify-between font-body-md text-body-md text-on-surface-variant cursor-pointer">
+<span class="">Decrypt ESP payloads</span>
+<div class="relative inline-block w-10 h-6">
+<input class="peer sr-only" type="checkbox">
+<div class="w-10 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</div>
+</label>
+</div>
+</div>
+<!-- Stats Summary -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-lg flex-grow">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Throughput</h2>
+<div class="grid grid-cols-2 gap-md">
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant/20">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Ingress</div>
+<div class="font-display text-[24px] font-bold text-on-surface">1.4 <span class="text-[14px] font-normal text-on-surface-variant">Gbps</span></div>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant/20">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Egress</div>
+<div class="font-display text-[24px] font-bold text-on-surface">842 <span class="text-[14px] font-normal text-on-surface-variant">Mbps</span></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Row: Real-time Traffic Feed (Full Width) -->
+<div class="md:col-span-12 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col h-[400px]">
+<div class="p-md border-b border-surface-variant flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-md text-[18px] text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant">list_alt</span> Packet Feed
+                    </h2>
+<div class="flex gap-md font-label-sm text-label-sm">
+<div class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-secondary-fixed"></div> Encrypted (ESP)</div>
+<div class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-outline-variant"></div> Plaintext (IKE)</div>
+</div>
+</div>
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant border-b border-surface-variant">
+<div class="col-span-2">TIMESTAMP</div>
+<div class="col-span-1">PROTO</div>
+<div class="col-span-3">SOURCE</div>
+<div class="col-span-3">DESTINATION</div>
+<div class="col-span-2">SPI / INFO</div>
+<div class="col-span-1 text-right">SIZE</div>
+</div>
+<!-- Scrolling Log Container -->
+<div class="flex-grow overflow-y-auto log-container bg-white relative" id="packet-log">
+<!-- Log entries wrapper for animation -->
+<div class="absolute w-full scrolling-line">
+<!-- Entry 1: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<!-- Entry 2: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.405</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-2 font-mono text-outline">0x88b122c4</div>
+<div class="col-span-1 text-right text-outline">256</div>
+</div>
+<!-- Entry 3: Plaintext IKE -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:12.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Informational Message</div>
+<div class="col-span-1 text-right text-outline">128</div>
+</div>
+<!-- Entry 4: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.155</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1420</div>
+</div>
+<!-- Duplicate entries to simulate continuous scrolling feed -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:13.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Keep-Alive</div>
+<div class="col-span-1 text-right text-outline">64</div>
+</div>
+
+<!-- Entry 1: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<!-- Entry 2: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.405</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-2 font-mono text-outline">0x88b122c4</div>
+<div class="col-span-1 text-right text-outline">256</div>
+</div>
+<!-- Entry 3: Plaintext IKE -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:12.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Informational Message</div>
+<div class="col-span-1 text-right text-outline">128</div>
+</div>
+<!-- Entry 4: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.155</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1420</div>
+</div>
+<!-- Duplicate entries to simulate continuous scrolling feed -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:13.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Keep-Alive</div>
+<div class="col-span-1 text-right text-outline">64</div>
+</div>
+
+<!-- Entry 1: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<!-- Entry 2: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:11.405</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-2 font-mono text-outline">0x88b122c4</div>
+<div class="col-span-1 text-right text-outline">256</div>
+</div>
+<!-- Entry 3: Plaintext IKE -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:12.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Informational Message</div>
+<div class="col-span-1 text-right text-outline">128</div>
+</div>
+<!-- Entry 4: Encrypted -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.155</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1420</div>
+</div>
+<!-- Duplicate entries to simulate continuous scrolling feed -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center">
+<div class="col-span-2 text-outline font-mono">14:02:12.402</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-secondary-fixed/20 text-on-secondary-container px-2 py-0.5 rounded font-label-sm tracking-wider">ESP</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">192.168.1.100:4500</div>
+<div class="col-span-3 font-mono text-on-surface">203.0.113.50:4500</div>
+<div class="col-span-2 font-mono text-outline">0xcb329a1f</div>
+<div class="col-span-1 text-right text-outline">1042</div>
+</div>
+<div class="grid grid-cols-12 gap-sm px-lg py-sm border-b border-surface-variant/50 hover:bg-surface-container-low/50 transition-colors font-body-md text-[13px] items-center bg-surface-container-lowest">
+<div class="col-span-2 text-outline font-mono">14:02:13.010</div>
+<div class="col-span-1 flex items-center gap-xs">
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded font-label-sm tracking-wider">IKEv2</span>
+</div>
+<div class="col-span-3 font-mono text-on-surface">10.0.0.5:500</div>
+<div class="col-span-3 font-mono text-on-surface">172.16.0.1:500</div>
+<div class="col-span-2 text-outline truncate">Keep-Alive</div>
+<div class="col-span-1 text-right text-outline">64</div>
+</div>
+</div>
+</div>
+<!-- Fade overlay for top of log -->
+<div class="absolute top-[41px] left-0 right-0 h-8 bg-gradient-to-b from-white to-transparent pointer-events-none z-10"></div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface dark:bg-surface-dim w-full py-xl border-t border-outline-variant dark:border-outline mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-[1200px] mx-auto gap-md">
+<div class="font-label-sm text-label-sm font-semibold text-on-surface-variant dark:text-on-surface-variant">
+                © 2024 IPsec Analyzer. Professional Security Infrastructure.
+            </div>
+<div class="flex gap-lg font-label-md text-label-md">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Documentation</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Support</a>
+</div>
+</div>
+</footer>
+<script>
+        // Simple script to duplicate log entries to make the CSS animation loop smoother visually
+        document.addEventListener("DOMContentLoaded", () => {
+            const container = document.querySelector('.scrolling-line');
+            if(container) {
+                const clone = container.innerHTML;
+                container.innerHTML += clone + clone; // Tripling content for continuous scroll illusion
+            }
+        });
+    </script>
+
+
+</body></html>

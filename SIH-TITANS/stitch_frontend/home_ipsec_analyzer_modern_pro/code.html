@@ -1,0 +1,573 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>TITAN IPsec Analyzer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "secondary-fixed": "#e2dfff",
+                "primary": "#0058bc",
+                "tertiary-fixed": "#ffdbcc",
+                "inverse-on-surface": "#eef0fc",
+                "background": "#f9f9ff",
+                "on-tertiary-container": "#fffbff",
+                "diagram-line": "#D1D1D6",
+                "outline": "#717786",
+                "surface-container-high": "#e6e8f3",
+                "status-offline": "#8E8E93",
+                "surface-container-low": "#f1f3fe",
+                "secondary-container": "#6664e4",
+                "on-primary": "#ffffff",
+                "surface-variant": "#e0e2ed",
+                "on-primary-container": "#fefcff",
+                "error-container": "#ffdad6",
+                "on-tertiary": "#ffffff",
+                "status-online": "#34C759",
+                "tertiary-container": "#c64f00",
+                "tertiary": "#9e3d00",
+                "secondary": "#4c4aca",
+                "primary-fixed-dim": "#adc6ff",
+                "error": "#ba1a1a",
+                "on-primary-fixed": "#001a41",
+                "inverse-surface": "#2d3039",
+                "surface": "#f9f9ff",
+                "secondary-fixed-dim": "#c2c1ff",
+                "tertiary-fixed-dim": "#ffb595",
+                "on-background": "#181c23",
+                "on-secondary-fixed-variant": "#3631b4",
+                "surface-container": "#ecedf9",
+                "on-tertiary-fixed": "#351000",
+                "on-error-container": "#93000a",
+                "on-tertiary-fixed-variant": "#7c2e00",
+                "outline-variant": "#c1c6d7",
+                "inverse-primary": "#adc6ff",
+                "surface-bright": "#f9f9ff",
+                "on-secondary-fixed": "#0c006a",
+                "hero-scrim": "rgba(0,0,0,0.4)",
+                "surface-container-highest": "#e0e2ed",
+                "surface-dim": "#d8d9e5",
+                "on-secondary-container": "#fffbff",
+                "primary-fixed": "#d8e2ff",
+                "status-busy": "#FF9500",
+                "surface-container-lowest": "#ffffff",
+                "primary-container": "#0070eb",
+                "on-secondary": "#ffffff",
+                "on-error": "#ffffff",
+                "on-primary-fixed-variant": "#004493",
+                "surface-tint": "#005bc1",
+                "on-surface-variant": "#414755",
+                "on-surface": "#181c23"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "hero-padding": "120px",
+                "timeline-width": "2px",
+                "section-gap": "160px",
+                "node-gap": "64px",
+                "diagram-gutter": "24px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Geist"
+                ],
+                "display-hero-mobile": [
+                        "Geist"
+                ],
+                "mono-label": [
+                        "JetBrains Mono"
+                ],
+                "label-caps": [
+                        "Geist"
+                ],
+                "display-hero": [
+                        "Geist"
+                ],
+                "headline-lg": [
+                        "Geist"
+                ],
+                "body-lg": [
+                        "Geist"
+                ],
+                "headline-serif": [
+                        "\"Source Serif 4\""
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "15px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "display-hero-mobile": [
+                        "48px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "mono-label": [
+                        "13px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-caps": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "0.08em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-hero": [
+                        "80px",
+                        {
+                                "lineHeight": "1.05",
+                                "letterSpacing": "-0.04em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-serif": [
+                        "28px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "0",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { scroll-behavior: smooth; }
+        .vertical-nav-item.active { opacity: 1; }
+        .vertical-nav-item.active .nav-line { width: 48px; background-color: #0058bc; }
+        .vertical-nav-item { opacity: 0.4; transition: all 0.4s ease; }
+        .vertical-nav-item:hover { opacity: 0.8; }
+        .nav-line { height: 1px; width: 24px; background-color: currentColor; transition: all 0.4s ease; }
+        
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(32px); 
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(255,255,255,0.6); 
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+        }
+        
+        .sparkline {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 3s ease-out forwards;
+        }
+        
+        @keyframes drawLine {
+            to { stroke-dashoffset: 0; }
+        }
+
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .ticker-content {
+            display: inline-block;
+            animation: ticker 30s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-in-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-x-hidden relative">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b-[0.5px] border-outline-variant shadow-sm transition-all duration-200">
+<div class="flex justify-between items-center px-margin-desktop h-16 max-w-[1200px] mx-auto">
+<div class="font-headline-md text-headline-md font-bold text-on-surface"><span class="text-primary font-bold uppercase" style="font-family: Georgia, serif; font-size: 32px; letter-spacing: -0.8px;">王TITAN</span></div>
+<div class="hidden md:flex items-center space-x-lg" style="font-family: 'Times New Roman', Times, serif;">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="{{DATA:SCREEN:SCREEN_5}}">Home</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_19}}">Analyzer</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_22}}">Reports</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_23}}">Live Monitor</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md hover:bg-surface-variant/50 rounded-lg px-3 py-2" href="{{DATA:SCREEN:SCREEN_16}}">About</a>
+</div>
+<div class="flex items-center space-x-md">
+<button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<a href="{{DATA:SCREEN:SCREEN_14}}" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors"><span class="material-symbols-outlined text-on-surface-variant">settings</span></a>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCu_pbOVKpKN9GpITHjPc1URbXkqi2QXuPcMLZ0nm2ouF8LpCxUaGItLfCE9_8uTGZ5whhN8DlA9tl45Cw7TVJi1A9smObcF3nG4zLIILoFckvjpNy0yDRy-8PcR0_05TIzwfj9646YJqs1O3JzEwRbFRCKkODNeks4RuYV9GyofuROJT5DxF_6w-WNDHFNjI7v8_HsMZN0B3NIcQP6uc-g2VHRPNJi11NhCW9FMJh_g34SNks9x7ZC">
+</div>
+</div>
+</div>
+</nav>
+<!-- Live Threat Ticker -->
+<div class="fixed top-20 w-full z-40 bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant/10 py-1.5 overflow-hidden">
+<div class="ticker-wrap flex items-center gap-4 px-4">
+<span class="font-label-caps text-[10px] text-primary tracking-widest uppercase shrink-0 border-r border-outline-variant/20 pr-4">Live Threat Intel</span>
+<div class="ticker-content font-mono-label text-[11px] text-on-surface-variant flex gap-8">
+<span class=""><span class="text-error mr-1">●</span> IKEv2 Fragmentation Attack detected targeting 192.168.1.45</span>
+<span class=""><span class="text-status-online mr-1">●</span> IPsec tunnel ESTABLISHED: Gateway-A to Branch-B</span>
+<span class=""><span class="text-status-busy mr-1">●</span> Anomaly: High volume ESP traffic on port 4500</span>
+<span class=""><span class="text-status-online mr-1">●</span> Signature DB updated to v2.4.1</span>
+</div>
+</div>
+</div>
+<!-- Vertical Navigation (Pagani Inspired) -->
+<nav class="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-10 pointer-events-auto border-l-[1px] border-outline-variant/20 py-8">
+<a class="vertical-nav-item active flex items-center group -ml-[1px]" href="#hero">
+<div class="nav-line mr-4"></div>
+<span class="font-headline-serif text-sm text-on-surface">01</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity ml-4 text-primary">Intro</span>
+</a>
+<a class="vertical-nav-item flex items-center group -ml-[1px]" href="#capabilities">
+<div class="nav-line mr-4"></div>
+<span class="font-headline-serif text-sm text-on-surface">02</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity ml-4 text-primary">Platform</span>
+</a>
+<a class="vertical-nav-item flex items-center group -ml-[1px]" href="#workflow">
+<div class="nav-line mr-4"></div>
+<span class="font-headline-serif text-sm text-on-surface">03</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity ml-4 text-primary">Process</span>
+</a>
+<a class="vertical-nav-item flex items-center group -ml-[1px]" href="#status">
+<div class="nav-line mr-4"></div>
+<span class="font-headline-serif text-sm text-on-surface">04</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase opacity-0 group-hover:opacity-100 transition-opacity ml-4 text-primary">Status</span>
+</a>
+</nav>
+<main>
+<!-- 01: Hero Section -->
+<section class="relative min-h-screen flex items-center justify-center px-4 md:px-hero-padding pt-24" id="hero">
+<div class="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-multiply" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDNTiYRM4fqwHbKLrf1hJJGkJVKW-GOAXBc5XOBMKopnOZabQ7CLDG7W1hfUv_vKj-SDzIRIE-06NBW4CzBt_iLWZQMwnrkt8RI0HgLklaigpuxhnkGUAb9xx_5G-ybG-qN2AiN9dIe7oQhetzJhZ0uHAX5bqCsboATdBd6b0xbTgGMuAEU5yB-6GQ20qhBcyz9KSVaQZ7WXl-OSpfyH80-MhIeTPPKWSQ7g95T-sA2fWrCaHzx2vvg')" data-stitch-orig-opacity="0.4"></div>
+<div class="absolute inset-0 bg-gradient-to-b from-surface/60 via-surface/90 to-surface z-0"></div>
+<div class="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center mt-12">
+<div class="glass-panel px-6 py-2 rounded-full mb-8 flex items-center gap-3">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+<span class="font-label-caps text-[10px] uppercase tracking-widest text-on-surface-variant">TITAN Core Engine v2.0 Online</span>
+</div>
+<h1 class="font-headline-serif text-display-hero-mobile md:text-display-hero text-on-surface mb-6 fade-in-up visible">Titan IPsec Analyzer</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-12 fade-in-up visible" style="transition-delay: 100ms;">AI-driven IPsec VPN traffic analysis and high-fidelity security assessment.</p>
+<div class="flex flex-col sm:flex-row gap-6 justify-center fade-in-up visible" style="transition-delay: 200ms;">
+<a class="inline-flex items-center justify-center px-8 py-4 bg-primary text-on-primary font-label-caps text-label-caps rounded-full hover:bg-on-primary-fixed-variant transition-all shadow-[0_4px_16px_rgba(0,88,188,0.2)] hover:shadow-[0_8px_24px_rgba(0,88,188,0.3)] hover:-translate-y-0.5" href="{{DATA:SCREEN:SCREEN_19}}">
+                        Analyze PCAP
+                    </a>
+<a class="inline-flex items-center justify-center px-8 py-4 glass-panel text-primary font-label-caps text-label-caps rounded-full hover:bg-surface-container-low transition-all" href="{{DATA:SCREEN:SCREEN_22}}">
+                        View Reports
+                    </a>
+</div>
+</div>
+</section>
+<!-- 02: Platform Capabilities -->
+<section class="py-section-gap px-4 md:px-hero-padding relative z-10" id="capabilities">
+<div class="max-w-7xl mx-auto pl-0 lg:pl-32">
+<div class="mb-24 text-center md:text-left fade-in-up visible">
+<h2 class="font-headline-serif text-headline-lg text-on-surface mb-4">Platform Capabilities</h2>
+<div class="h-[1px] w-24 bg-primary mx-auto md:mx-0"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Feature Cards (Glassmorphism) -->
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">radar</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">IPsec Detection</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Identify and isolate IPsec protocols (ESP, AH, IKE) within complex network streams.</p>
+</div>
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible" style="transition-delay: 100ms;">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">analytics</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">Packet Analysis</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Deep inspection of packet headers, payload characteristics, and flow metadata.</p>
+</div>
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible" style="transition-delay: 200ms;">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">memory</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">Feature Extraction</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Automated extraction of key behavioral features for downstream machine learning analysis.</p>
+</div>
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">psychology</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">ML Classification</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Advanced algorithms categorize traffic patterns and identify potential anomalies.</p>
+</div>
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible" style="transition-delay: 100ms;">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">shield</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">Security Assessment</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Evaluate encryption strength, detect misconfigurations, and assess overall tunnel security.</p>
+</div>
+<div class="glass-panel p-10 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-300 fade-in-up group border border-outline-variant/20 visible" style="transition-delay: 200ms;">
+<span class="material-symbols-outlined text-primary text-2xl mb-6 font-light group-hover:scale-110 transition-transform">description</span>
+<h3 class="font-headline-serif text-xl text-on-surface mb-3">Automated Reports</h3>
+<p class="font-body-md text-on-surface-variant leading-relaxed text-sm">Generate comprehensive, actionable reports detailing findings and recommendations.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 03: How It Works (Refined Vertical Timeline) -->
+<section class="py-section-gap px-4 md:px-hero-padding relative" id="workflow">
+<div class="absolute inset-0 bg-surface-container-lowest/50 z-0"></div>
+<div class="max-w-4xl mx-auto pl-0 lg:pl-32 relative z-10">
+<div class="mb-24 text-center md:text-left fade-in-up visible">
+<h2 class="font-headline-serif text-headline-lg text-on-surface mb-4">How It Works</h2>
+<div class="h-[1px] w-24 bg-primary mx-auto md:mx-0"></div>
+</div>
+<div class="relative border-l-[1px] border-outline-variant/30 ml-4 md:ml-8 space-y-12 pb-8">
+<!-- Node 1 -->
+<div class="relative pl-12 fade-in-up visible">
+<div class="absolute -left-[3px] top-4 w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-primary/20"></div>
+<div class="absolute top-3 -left-8 font-headline-serif text-sm text-on-surface-variant">01</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/20">
+<div class="flex items-center gap-4 mb-2">
+<span class="material-symbols-outlined text-primary font-light text-xl">upload_file</span>
+<h4 class="font-label-caps text-on-surface uppercase tracking-widest text-[11px]">PCAP Upload</h4>
+</div>
+<p class="font-body-md text-on-surface-variant mt-2 text-sm">Securely ingest raw packet capture files for processing.</p>
+</div>
+</div>
+<!-- Node 2 -->
+<div class="relative pl-12 fade-in-up visible" style="transition-delay: 100ms;">
+<div class="absolute -left-[3px] top-4 w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="absolute top-3 -left-8 font-headline-serif text-sm text-outline-variant">02</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline font-light text-xl">search</span>
+<h4 class="font-label-caps text-on-surface uppercase tracking-widest text-[11px]">Packet Inspection</h4>
+</div>
+</div>
+</div>
+<!-- Node 3 -->
+<div class="relative pl-12 fade-in-up visible" style="transition-delay: 200ms;">
+<div class="absolute -left-[3px] top-4 w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="absolute top-3 -left-8 font-headline-serif text-sm text-outline-variant">03</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline font-light text-xl">verified_user</span>
+<h4 class="font-label-caps text-on-surface uppercase tracking-widest text-[11px]">IPsec Detection</h4>
+</div>
+</div>
+</div>
+<!-- Final Node -->
+<div class="relative pl-12 fade-in-up visible" style="transition-delay: 300ms;">
+<div class="absolute -left-[3px] top-4 w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+<div class="absolute top-3 -left-8 font-headline-serif text-sm text-outline-variant">04</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-outline font-light text-xl">task</span>
+<h4 class="font-label-caps text-on-surface uppercase tracking-widest text-[11px]">Final Report</h4>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 04: Platform Status & Security Preview (SOC Monitor Style) -->
+<section class="py-section-gap px-4 md:px-hero-padding relative" id="status">
+<div class="max-w-7xl mx-auto pl-0 lg:pl-32 grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Status Panel -->
+<div class="lg:col-span-5 flex flex-col justify-center fade-in-up visible">
+<h2 class="font-headline-serif text-headline-lg text-on-surface mb-8">System Status</h2>
+<div class="glass-panel p-8 rounded-2xl space-y-6 relative overflow-hidden border border-outline-variant/20">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-6xl">memory</span>
+</div>
+<div class="flex justify-between items-center pb-4 border-b border-outline-variant/10 relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-1.5 h-1.5 rounded-full bg-status-online shadow-[0_0_8px_rgba(52,199,89,0.8)]"></div>
+<span class="font-mono-label text-[10px] text-status-online uppercase tracking-wider">Online</span>
+</div>
+<span class="font-headline-serif text-base text-on-surface block">Core Engine</span>
+</div>
+<div class="w-20 h-6">
+<svg class="w-full h-full stroke-status-online fill-none stroke-[1.5]" viewBox="0 0 100 30">
+<path class="sparkline opacity-60" d="M0,20 Q10,10 20,20 T40,15 T60,25 T80,10 T100,20"></path>
+</svg>
+</div>
+</div>
+<div class="flex justify-between items-center pb-4 border-b border-outline-variant/10 relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-1.5 h-1.5 rounded-full bg-status-online shadow-[0_0_8px_rgba(52,199,89,0.8)]"></div>
+<span class="font-mono-label text-[10px] text-status-online uppercase tracking-wider">Ready</span>
+</div>
+<span class="font-headline-serif text-base text-on-surface block">ML Classifier</span>
+</div>
+<div class="w-20 h-6">
+<svg class="w-full h-full stroke-status-online fill-none stroke-[1.5]" viewBox="0 0 100 30">
+<path class="sparkline opacity-60" d="M0,15 Q15,25 30,10 T60,20 T90,5 T100,15"></path>
+</svg>
+</div>
+</div>
+<div class="flex justify-between items-center relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<div class="w-1.5 h-1.5 rounded-full bg-status-online shadow-[0_0_8px_rgba(52,199,89,0.8)]"></div>
+<span class="font-mono-label text-[10px] text-status-online uppercase tracking-wider">Online</span>
+</div>
+<span class="font-headline-serif text-base text-on-surface block">API Gateway</span>
+</div>
+<div class="w-20 h-6">
+<svg class="w-full h-full stroke-status-online fill-none stroke-[1.5]" viewBox="0 0 100 30">
+<path class="sparkline opacity-60" d="M0,25 Q20,5 40,20 T70,10 T100,25"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Preview Card -->
+<div class="lg:col-span-7 flex flex-col justify-center fade-in-up visible" style="transition-delay: 100ms;">
+<div class="glass-panel p-10 rounded-2xl relative overflow-hidden border border-outline-variant/20 bg-surface/50">
+<div class="absolute top-0 right-0 bg-primary/10 backdrop-blur-md border-b border-l border-primary/20 text-primary font-mono-label text-[10px] px-4 py-2 rounded-bl-xl uppercase tracking-widest">Live Analysis</div>
+<h3 class="font-headline-serif text-2xl text-on-surface mb-8">Threat Assessment</h3>
+<div class="flex items-center gap-6 mb-8 bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-sm">
+<div class="w-12 h-12 rounded-full bg-status-online/10 flex items-center justify-center border border-status-online/20 relative">
+<div class="absolute inset-0 rounded-full border border-status-online/40 animate-ping opacity-20"></div>
+<span class="material-symbols-outlined text-status-online text-2xl font-light" style="font-variation-settings: 'FILL' 1;">shield_locked</span>
+</div>
+<div>
+<div class="font-headline-serif text-xl text-status-online mb-1">Low Risk</div>
+<div class="font-mono-label text-[10px] text-on-surface-variant tracking-wider">Signature: NO_ANOMALY_DETECTED</div>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/20 text-center shadow-sm">
+<div class="font-label-caps text-[10px] text-on-surface-variant mb-3 uppercase tracking-widest">ESP Packets</div>
+<div class="font-headline-serif text-3xl text-on-surface">60</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/20 text-center shadow-sm">
+<div class="font-label-caps text-[10px] text-on-surface-variant mb-3 uppercase tracking-widest">AH Packets</div>
+<div class="font-headline-serif text-3xl text-on-surface">0</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/20 text-center shadow-sm">
+<div class="font-label-caps text-[10px] text-on-surface-variant mb-3 uppercase tracking-widest">IKE Packets</div>
+<div class="font-headline-serif text-3xl text-on-surface">0</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-32 px-4 text-center relative overflow-hidden">
+<div class="absolute inset-0 bg-surface-container-lowest/80 z-0"></div>
+<div class="relative z-10 max-w-2xl mx-auto fade-in-up visible">
+<h2 class="font-headline-serif text-4xl text-on-surface mb-10">Ready to analyze your IPsec traffic?</h2>
+<a class="inline-flex items-center justify-center px-10 py-4 bg-on-surface text-surface font-label-caps text-sm rounded-full hover:bg-primary hover:text-on-primary transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_32px_rgba(0,88,188,0.2)] hover:-translate-y-0.5" href="{{DATA:SCREEN:SCREEN_19}}">
+                Start Analysis
+                <span class="material-symbols-outlined ml-2 text-[18px] font-light">arrow_forward</span>
+</a>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest w-full py-20 border-t border-outline-variant/10 relative z-20">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-diagram-gutter px-6 md:px-hero-padding max-w-7xl mx-auto">
+<div class="md:col-span-1">
+<span class="font-headline-serif text-xl text-on-surface block mb-4">TITAN</span>
+<p class="font-body-md text-on-surface-variant text-sm">
+                    © 2024 TITAN IPsec Analyzer. Smart India Hackathon Project.
+                </p>
+</div>
+<div class="md:col-span-3 flex justify-start md:justify-end items-center gap-8 mt-8 md:mt-0 flex-wrap">
+<a class="font-body-md text-sm text-on-surface-variant hover:text-primary transition-colors" href="{{DATA:SCREEN:SCREEN_5}}">Home</a>
+<a class="font-body-md text-sm text-on-surface-variant hover:text-primary transition-colors" href="{{DATA:SCREEN:SCREEN_19}}">Analyzer</a>
+<a class="font-body-md text-sm text-on-surface-variant hover:text-primary transition-colors" href="{{DATA:SCREEN:SCREEN_22}}">Reports</a>
+<a class="font-body-md text-sm text-on-surface-variant hover:text-primary transition-colors" href="{{DATA:SCREEN:SCREEN_23}}">Live Monitor</a>
+<a class="font-body-md text-sm text-on-surface-variant hover:text-primary transition-colors" href="{{DATA:SCREEN:SCREEN_16}}">About</a>
+</div>
+</div>
+</footer>
+<script>
+        // Scroll spy for vertical navigation
+        const sections = document.querySelectorAll('section[id]');
+        const navItems = document.querySelectorAll('.vertical-nav-item');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - sectionHeight / 3)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href').includes(current)) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Optional: stop observing once animated
+                    // observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+
+
+
+
+
+
+</body></html>

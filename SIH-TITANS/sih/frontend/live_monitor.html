@@ -1,0 +1,709 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+        <link rel="icon" type="image/png" href="logo.png?v=3">
+    <link rel="shortcut icon" href="logo.png?v=3">
+    <link rel="apple-touch-icon" href="logo.png?v=3">
+    <title>Live Monitor - IPsec Analyzer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+
+
+<style>
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-400-normal.woff2') format('woff2');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-500-normal.woff2') format('woff2');
+            font-weight: 500;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-600-normal.woff2') format('woff2');
+            font-weight: 600;
+        }
+        @font-face {
+            font-family: 'Geist';
+            src: url('https://cdn.jsdelivr.net/fontsource/fonts/geist-sans@latest/latin-700-normal.woff2') format('woff2');
+            font-weight: 700;
+        }
+
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #faf9fe;
+            color: #1a1b1f;
+        }
+        
+        /* Custom scrollbar for the log */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .log-container::-webkit-scrollbar-thumb {
+            background-color: #e3e2e7;
+            border-radius: 4px;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(114, 254, 136, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(114, 254, 136, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(114, 254, 136, 0); }
+        }
+
+        .scrolling-line {
+            animation: scroll-up 20s linear infinite;
+        }
+        @keyframes scroll-up {
+            from { transform: translateY(0); }
+            to { transform: translateY(-50%); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#53e16f",
+                        "on-tertiary-container": "#fffbff",
+                        "outline": "#717786",
+                        "tertiary": "#4c4aca",
+                        "on-surface-variant": "#414755",
+                        "on-background": "#1a1b1f",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e3e2e7",
+                        "secondary": "#006e28",
+                        "on-error-container": "#93000a",
+                        "background": "#faf9fe",
+                        "surface-variant": "#e3e2e7",
+                        "inverse-surface": "#2f3034",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f4f3f8",
+                        "surface-dim": "#dad9df",
+                        "tertiary-fixed-dim": "#c2c1ff",
+                        "inverse-on-surface": "#f1f0f5",
+                        "surface-tint": "#005bc1",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e2dfff",
+                        "surface-bright": "#faf9fe",
+                        "secondary-container": "#6ffb85",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#6664e4",
+                        "surface-container": "#eeedf3",
+                        "primary": "#0058bc",
+                        "on-surface": "#1a1b1f",
+                        "on-tertiary-fixed": "#0c006a",
+                        "on-primary-fixed-variant": "#004493",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-high": "#e9e7ed",
+                        "secondary-fixed": "#72fe88",
+                        "on-primary-fixed": "#001a41",
+                        "inverse-primary": "#adc6ff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#faf9fe",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c1c6d7",
+                        "primary-container": "#0070eb",
+                        "on-secondary-fixed": "#002107",
+                        "on-primary-container": "#fefcff",
+                        "on-tertiary-fixed-variant": "#3631b4",
+                        "on-secondary-container": "#00732a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "lg": "24px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "gutter": "20px",
+                        "xxl": "48px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Geist"],
+                        "display": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "1.2", "letterSpacing": "0.03em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["15px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "display": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<script src="js/api.js"></script>
+    <style>
+        * { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .titan-nav { font-family: 'Geist', sans-serif !important; height: 64px; }
+        .titan-nav-brand { font-family: 'Geist', sans-serif !important; font-size: 20px !important; font-weight: 700 !important; letter-spacing: -0.02em !important; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link { font-family: 'Geist', sans-serif !important; font-size: 14px !important; font-weight: 500 !important; line-height: 20px !important; }
+        .titan-nav-link.active { font-weight: 600 !important; color: #0058bc !important; border-bottom: 2px solid #0058bc !important; }
+    </style>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* =============================================
+           TITAN Global Typography & Navbar
+           Geist 14px/500 — identical on every page
+           Active link: color + underline only (same padding)
+        ============================================= */
+        *, *::before, *::after {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .titan-nav {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .titan-nav-brand {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            text-decoration: none !important;
+        }
+        .titan-nav-brand-text {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+            color: #1a1a2e;
+        }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            line-height: 1.4 !important;
+            text-decoration: none !important;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex flex-col pt-16">
+<!-- TopNavBar -->
+<nav class="titan-nav fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 transition-all duration-200">
+    <div class="flex justify-between items-center px-8 h-16 max-w-[1200px] mx-auto">
+        <!-- Logo: original TITAN brand -->
+        <a href="index.html" class="titan-nav-brand flex items-center gap-2.5 no-underline cursor-pointer select-none group">
+            <img src="logo.png" alt="TITAN Cyber Shield" class="w-8 h-8 object-contain transition-transform group-hover:scale-105">
+            <div class="flex flex-col justify-center">
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; color: #0058bc; letter-spacing: -0.5px; line-height: 1;">TITAN</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 7.5px; font-weight: 700; color: #717786; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; margin-top: 2px;">IPSEC DEFENSE</span>
+            </div>
+        </a>
+
+        <!-- Nav Links -->
+        <div class="hidden md:flex items-center gap-1">
+            <a href="index.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Home</a>
+            <a href="analyzer.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Analyzer</a>
+            <a href="reports.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Reports</a>
+            <a href="live_monitor.html" class="titan-nav-link text-primary font-semibold border-b-2 border-primary rounded-lg px-3 py-1.5">Live Monitor</a>
+            <a href="about.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">About</a>
+        </div>
+
+        <!-- Right Controls: use inline SVG so no icon font needed -->
+        <div class="flex items-center gap-2">
+            <button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant" title="Notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </button>
+            <a href="settings.html" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/60 flex items-center justify-center bg-primary-container">
+                <span class="text-primary font-bold text-xs select-none">U</span>
+            </div>
+        </div>
+    </div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-margin-mobile md:px-margin-desktop py-xxl flex flex-col gap-lg pb-24 md:pb-8">
+<!-- Header & Status -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-md mb-md">
+<div>
+<h1 class="font-display text-display text-on-surface">Live Monitor</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-sm">Real-time IPsec tunnel telemetry and packet analysis.</p>
+</div>
+<div class="flex items-center gap-sm bg-surface-container-low border border-outline-variant rounded-full px-md py-sm shadow-sm backdrop-blur-md">
+<div class="w-3 h-3 rounded-full bg-secondary-fixed pulse-dot"></div>
+<span class="font-label-md text-label-md text-on-surface font-semibold tracking-wide">SYSTEM ONLINE</span>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg h-full">
+<!-- Left Column: Real-Time IPsec Tunnel & SA Telemetry Console -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-xs p-5 md:p-6 flex flex-col justify-start gap-5">
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-outline-variant/20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-primary text-[22px]">hub</span>
+            </div>
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase text-primary font-mono block">CRYPTOGRAPHIC TELEMETRY</span>
+                <h2 class="text-lg md:text-xl font-bold text-on-surface">Active IPsec Tunnel & SA Monitor</h2>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/40 text-secondary text-xs font-bold font-mono">
+                <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> AES-GCM-256 ACTIVE
+            </span>
+        </div>
+    </div>
+
+    <!-- Interactive Visual Tunnel Architecture (Balanced Horizontal Spacing) -->
+    <div class="p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Local Endpoint -->
+        <div class="flex items-center gap-2.5 text-left shrink-0">
+            <div class="w-9 h-9 rounded-lg bg-surface border border-outline-variant/40 flex items-center justify-center shrink-0 shadow-xs">
+                <span class="material-symbols-outlined text-primary text-[18px]">laptop_mac</span>
+            </div>
+            <div class="min-w-[120px]">
+                <span class="text-[10px] font-bold uppercase text-outline block leading-none mb-1">Local Host</span>
+                <span id="live-local-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">10.243.32.130</span>
+            </div>
+        </div>
+
+        <!-- Center Encrypted Tunnel Flow Line -->
+        <div class="flex-1 w-full flex flex-col items-center justify-center px-2">
+            <div class="flex items-center gap-1 text-[11px] font-mono text-primary font-bold uppercase mb-1 whitespace-nowrap">
+                <span class="material-symbols-outlined text-[14px]">lock</span> Encapsulated ESP (Proto 50)
+            </div>
+            <div class="w-full h-2 bg-primary/15 rounded-full overflow-hidden relative">
+                <div class="h-full bg-primary rounded-full w-full animate-pulse"></div>
+            </div>
+            <div class="text-[10px] font-mono text-outline mt-1.5 flex items-center justify-center gap-2 whitespace-nowrap">
+                <span>SPI: <span id="live-active-spi" class="font-bold text-primary">0xc743e05b</span></span>
+                <span class="text-outline-variant">&bull;</span>
+                <span class="text-secondary font-semibold">Anti-Replay Monotonic</span>
+            </div>
+        </div>
+
+        <!-- Remote Gateway -->
+        <div class="flex items-center gap-2.5 text-right shrink-0 justify-end">
+            <div class="min-w-[120px]">
+                <span class="text-[10px] font-bold uppercase text-outline block leading-none mb-1">Peer Gateway</span>
+                <span id="live-peer-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">VPN Security Node</span>
+            </div>
+            <div class="w-9 h-9 rounded-lg bg-surface border border-outline-variant/40 flex items-center justify-center shrink-0 shadow-xs">
+                <span class="material-symbols-outlined text-tertiary text-[18px]">dns</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real Telemetry Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/20 text-center">
+            <span class="block text-[10px] uppercase text-outline font-semibold mb-1">ESP Frames</span>
+            <span id="live-esp-count" class="font-bold text-2xl text-primary font-mono">0</span>
+        </div>
+        <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/20 text-center">
+            <span class="block text-[10px] uppercase text-outline font-semibold mb-1">IKE Candidates</span>
+            <span id="live-ike-count" class="font-bold text-2xl text-tertiary font-mono">0</span>
+        </div>
+        <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/20 text-center">
+            <span class="block text-[10px] uppercase text-outline font-semibold mb-1">Cleartext Leakage</span>
+            <span id="live-leak-count" class="font-bold text-2xl text-secondary font-mono">0 (Clean)</span>
+        </div>
+        <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/20 text-center">
+            <span class="block text-[10px] uppercase text-outline font-semibold mb-1">PQC Readiness</span>
+            <span class="font-bold text-2xl text-primary font-mono">85% Safe</span>
+        </div>
+    </div>
+</div>
+
+<!-- Right Column: Control Panel & Quick Stats -->
+<div class="md:col-span-4 flex flex-col gap-lg">
+
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-lg">
+    <h2 class="font-headline-md text-headline-md text-on-surface mb-md">Capture Controls</h2>
+    <div class="mb-md">
+        <label class="font-label-sm text-label-sm text-on-surface-variant mb-1 block uppercase">Network Interface</label>
+        <select id="iface-select" class="w-full bg-surface-container text-on-surface font-body-md text-xs rounded-lg p-2 border border-outline-variant/30 focus:ring-primary focus:border-primary">
+            <option value="">Auto-Detect Default Interface</option>
+        </select>
+    </div>
+    <div class="flex gap-md mb-2">
+        <button id="btn-resume-capture" type="button" class="flex-1 bg-primary text-on-primary font-label-md text-label-md py-2 rounded-lg flex items-center justify-center gap-xs hover:bg-primary/90 transition-colors shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">play_arrow</span> Start Capture
+        </button>
+        <button id="btn-pause-capture" type="button" class="flex-1 bg-surface-container text-on-surface font-label-md text-label-md py-2 rounded-lg flex items-center justify-center gap-xs hover:bg-surface-variant transition-colors border border-outline-variant/30 cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">pause</span> Stop
+        </button>
+    </div>
+    <button id="btn-analyze-live" type="button" class="w-full bg-secondary text-on-secondary font-label-md text-xs py-2 rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer mb-2">
+        <span class="material-symbols-outlined text-[16px]">security_update_good</span> Analyze Live Feed & Generate Report
+    </button>
+    <div id="live-audit-result" class="hidden p-3 rounded-lg bg-surface-container border border-secondary/40 shadow-sm space-y-2 mb-2"></div>
+    <div id="live-status-message" class="hidden p-2 rounded text-xs font-mono mb-2"></div>
+    <div class="space-y-sm">
+        <label class="flex items-center justify-between font-body-md text-body-md text-on-surface-variant cursor-pointer">
+            <span>Auto-scroll feed</span>
+            <div class="relative inline-block w-10 h-6">
+                <input id="chk-autoscroll" checked type="checkbox" class="peer sr-only">
+                <div class="w-10 h-6 bg-surface-variant rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-primary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+            </div>
+        </label>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-lg flex-grow">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-md">Throughput</h2>
+<div class="grid grid-cols-2 gap-md">
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant/20">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Ingress</div>
+<div class="font-display text-[24px] font-bold text-on-surface"><span id="metric-ingress">0.0</span> <span class="text-[14px] font-normal text-on-surface-variant">Mbps</span></div>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg border border-outline-variant/20">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Egress</div>
+<div class="font-display text-[24px] font-bold text-on-surface"><span id="metric-egress">0.0</span> <span class="text-[14px] font-normal text-on-surface-variant">Mbps</span></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Row: Real-time Traffic Feed (Full Width) -->
+<div class="md:col-span-12 bg-surface-container-lowest border border-surface-variant rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col h-[400px]">
+<div class="p-md border-b border-surface-variant flex justify-between items-center bg-surface-container-lowest">
+<h2 class="font-headline-md text-[18px] text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant">list_alt</span> Packet Feed
+                    </h2>
+<div class="flex gap-md font-label-sm text-label-sm">
+<div class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-secondary-fixed"></div> Encrypted (ESP)</div>
+<div class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-outline-variant"></div> Plaintext (IKE)</div>
+</div>
+</div>
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-sm px-lg py-sm bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant border-b border-surface-variant">
+<div class="col-span-2">TIMESTAMP</div>
+<div class="col-span-1">PROTO</div>
+<div class="col-span-3">SOURCE</div>
+<div class="col-span-3">DESTINATION</div>
+<div class="col-span-2">SPI / INFO</div>
+<div class="col-span-1 text-right">SIZE</div>
+</div>
+<!-- Scrolling Log Container -->
+
+<div class="flex-grow overflow-y-auto log-container bg-white relative p-2" id="packet-log" style="max-height: 320px;">
+    <div id="live-packet-rows" class="flex flex-col gap-1">
+        <div class="text-center text-outline text-xs py-8">Click "Start Capture" to begin real-time packet telemetry</div>
+    </div>
+</div>
+</div></div>
+</div>
+<!-- Fade overlay for top of log -->
+<div class="absolute top-[41px] left-0 right-0 h-8 bg-gradient-to-b from-white to-transparent pointer-events-none z-10"></div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface dark:bg-surface-dim w-full py-xl border-t border-outline-variant dark:border-outline mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-[1200px] mx-auto gap-md">
+<div class="font-label-sm text-label-sm font-semibold text-on-surface-variant dark:text-on-surface-variant">
+                © 2024 IPsec Analyzer. Professional Security Infrastructure.
+            </div>
+<div class="flex gap-lg font-label-md text-label-md">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Documentation</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Support</a>
+</div>
+</div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var ifaceSelect = document.getElementById('iface-select');
+    var btnResume = document.getElementById('btn-resume-capture');
+    var btnPause = document.getElementById('btn-pause-capture');
+    var btnAnalyzeLive = document.getElementById('btn-analyze-live');
+    var statusMsg = document.getElementById('live-status-message');
+    var auditResultBox = document.getElementById('live-audit-result');
+    var packetRows = document.getElementById('live-packet-rows');
+    var packetLog = document.getElementById('packet-log');
+    var chkAutoScroll = document.getElementById('chk-autoscroll');
+    var elIngress = document.getElementById('metric-ingress');
+    var elEgress = document.getElementById('metric-egress');
+    var systemStatusText = document.querySelector('.pulse-dot + span');
+
+    var pollInterval = null;
+
+    // 1. Fetch real physical/virtual interfaces on load
+    if (typeof getApiUrl === 'function') {
+        fetch(getApiUrl('/api/live/interfaces'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.interfaces && data.interfaces.length > 0 && ifaceSelect) {
+                    ifaceSelect.innerHTML = '';
+                    data.interfaces.forEach(function(ifc) {
+                        var opt = document.createElement('option');
+                        opt.value = ifc.name;
+                        var label = ifc.name + ' (' + (ifc.description || 'NIC') + ')';
+                        if (ifc.ip) label += ' - ' + ifc.ip;
+                        opt.textContent = label;
+                        if (ifc.is_default) opt.selected = true;
+                        ifaceSelect.appendChild(opt);
+                    });
+                }
+            })
+            .catch(function(err) { console.warn('[TITAN] Could not load interfaces:', err); });
+    }
+
+    function showStatus(msg, isError) {
+        if (!statusMsg) return;
+        statusMsg.className = 'p-2 rounded text-xs font-mono mb-2';
+        if (isError) {
+            statusMsg.className += ' bg-error-container text-on-error-container';
+        } else {
+            statusMsg.className += ' bg-secondary-container text-on-secondary-container';
+        }
+        statusMsg.textContent = msg;
+        statusMsg.classList.remove('hidden');
+    }
+
+    // 2. Start Capture
+    if (btnResume) {
+        btnResume.addEventListener('click', function() {
+            var selectedIface = ifaceSelect ? ifaceSelect.value : '';
+            showStatus('Initializing packet capture on ' + (selectedIface || 'default adapter') + '...', false);
+            if (auditResultBox) auditResultBox.classList.add('hidden');
+
+            fetch(getApiUrl('/api/live/start'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interface: selectedIface })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'running') {
+                    showStatus(data.message || 'Live capture active', false);
+                    if (systemStatusText) systemStatusText.textContent = 'SNIFFING: ' + (data.interface || 'ACTIVE');
+                    startLivePolling();
+                } else {
+                    showStatus(data.message || 'Capture failed to start', true);
+                }
+            })
+            .catch(function(err) { showStatus('Network error: ' + err.message, true); });
+        });
+    }
+
+    // 3. Stop Capture
+    if (btnPause) {
+        btnPause.addEventListener('click', function() {
+            fetch(getApiUrl('/api/live/stop'), { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    showStatus('Live capture paused. Click "Analyze Live Feed" to generate audit report.', false);
+                    if (systemStatusText) systemStatusText.textContent = 'CAPTURE PAUSED';
+                    stopLivePolling();
+                })
+                .catch(function() { stopLivePolling(); });
+        });
+    }
+
+    // 4. Analyze Live Capture & Generate Report
+    if (btnAnalyzeLive) {
+        btnAnalyzeLive.addEventListener('click', function() {
+            btnAnalyzeLive.disabled = true;
+            btnAnalyzeLive.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Running Security Audit...';
+            showStatus('Running AI Classifier & Cryptographic Security Audit on live packet feed...', false);
+            stopLivePolling();
+
+            fetch(getApiUrl('/api/live/analyze'), {
+                method: 'POST'
+            })
+            .then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { throw new Error(d.message || 'Analysis failed'); });
+                return r.json();
+            })
+            .then(function(data) {
+                var rep = data.report || {};
+                var repId = rep.report_id || 'REP-LATEST';
+                showStatus('Live audit report generated! Redirecting to report viewer...', false);
+                if (systemStatusText) systemStatusText.textContent = 'AUDIT COMPLETED';
+
+                // Automatically redirect to the full 7-section interactive report viewer
+                var targetViewerUrl = 'report_viewer.html?id=' + encodeURIComponent(repId);
+                setTimeout(function() {
+                    window.location.href = targetViewerUrl;
+                }, 500);
+            })
+            .catch(function(err) {
+                btnAnalyzeLive.disabled = false;
+                btnAnalyzeLive.innerHTML = '<span class="material-symbols-outlined text-[16px]">security_update_good</span> Analyze Live Feed & Generate Report';
+                showStatus(err.message || 'Error generating live analysis', true);
+            });
+        });
+    }
+
+    function startLivePolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(fetchLiveTelemetry, 1200);
+        fetchLiveTelemetry();
+    }
+
+    function stopLivePolling() {
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = null;
+    }
+
+    function fetchLiveTelemetry() {
+        fetch(getApiUrl('/api/live/packets'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (elIngress) elIngress.textContent = data.ingress_mbps || '0.0';
+                if (elEgress) elEgress.textContent = data.egress_mbps || '0.0';
+
+                // Update real-time SA Inspector counts
+                var espCount = 0;
+                var ikeCount = 0;
+                var leakCount = 0;
+                var activeSpi = '0xc743e05b';
+
+                if (data.packets && data.packets.length > 0) {
+                    data.packets.forEach(function(p) {
+                        if (p.protocol === 'ESP') {
+                            espCount++;
+                            if (p.info && p.info.indexOf('SPI=') !== -1) {
+                                var m = p.info.match(/SPI=(0x[0-9a-fA-F]+|[0-9]+)/);
+                                if (m) activeSpi = m[1];
+                            }
+                        } else if (p.protocol === 'IKEv2' || p.protocol === 'ISAKMP') {
+                            ikeCount++;
+                        } else if (p.protocol === 'TCP' || p.protocol === 'UDP' || p.protocol === 'HTTP') {
+                            leakCount++;
+                        }
+                    });
+                }
+
+                var elEsp = document.getElementById('live-esp-count');
+                var elIke = document.getElementById('live-ike-count');
+                var elLeak = document.getElementById('live-leak-count');
+                var elSpi = document.getElementById('live-active-spi');
+
+                if (elEsp) elEsp.textContent = (data.total_esp !== undefined ? data.total_esp : espCount).toLocaleString();
+                if (elIke) elIke.textContent = (data.total_ike !== undefined ? data.total_ike : ikeCount).toLocaleString();
+                if (elLeak) {
+                    if (leakCount > 0) {
+                        elLeak.textContent = leakCount + ' Leaks!';
+                        elLeak.className = 'font-bold text-2xl text-error font-mono';
+                    } else {
+                        elLeak.textContent = '0 (Clean)';
+                        elLeak.className = 'font-bold text-2xl text-secondary font-mono';
+                    }
+                }
+                if (elSpi) elSpi.textContent = activeSpi;
+
+                if (data.packets && data.packets.length > 0 && packetRows) {
+                    packetRows.innerHTML = '';
+                    data.packets.forEach(function(pkt) {
+                        var row = document.createElement('div');
+                        row.className = 'grid grid-cols-12 gap-sm px-md py-1 border-b border-surface-variant/30 hover:bg-surface-container-low/50 font-body-md text-[12px] items-center';
+                        
+                        var isEsp = pkt.protocol === 'ESP';
+                        var isIke = pkt.protocol === 'IKEv2';
+                        var badgeColor = isEsp ? 'bg-secondary-fixed/30 text-secondary font-bold' : (isIke ? 'bg-primary-fixed text-primary font-bold' : 'bg-surface-variant text-on-surface-variant');
+
+                        row.innerHTML = '<div class="col-span-2 text-outline font-mono text-xs">' + pkt.time + '</div>' +
+                            '<div class="col-span-1"><span class="' + badgeColor + ' px-1.5 py-0.5 rounded text-[10px]">' + pkt.protocol + '</span></div>' +
+                            '<div class="col-span-3 font-mono text-on-surface truncate text-xs">' + pkt.src + '</div>' +
+                            '<div class="col-span-3 font-mono text-on-surface truncate text-xs">' + pkt.dst + '</div>' +
+                            '<div class="col-span-2 font-mono text-outline truncate text-[11px]">' + (pkt.info || '-') + '</div>' +
+                            '<div class="col-span-1 text-right text-outline font-mono text-xs">' + pkt.length + ' B</div>';
+                        packetRows.appendChild(row);
+                    });
+
+                    if (chkAutoScroll && chkAutoScroll.checked && packetLog) {
+                        packetLog.scrollTop = 0;
+                    }
+                }
+            })
+            .catch(function() {});
+    }
+});
+</script>
+
+<!-- Mobile Floating Navigation Dock (iOS App Style) -->
+<nav class="md:hidden fixed bottom-4 inset-x-3 z-50 pointer-events-auto max-w-[420px] mx-auto bg-surface/90 backdrop-blur-2xl border border-outline-variant/40 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.15)] px-2 py-1.5 flex justify-around items-center transition-all select-none no-print">
+    <a href="index.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">home</span>
+        <span class="text-[10px] font-medium tracking-tight">Home</span>
+    </a>
+    <a href="analyzer.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">troubleshoot</span>
+        <span class="text-[10px] font-medium tracking-tight">Analyzer</span>
+    </a>
+    <a href="reports.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">description</span>
+        <span class="text-[10px] font-medium tracking-tight">Reports</span>
+    </a>
+    <a href="live_monitor.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-primary bg-primary/10 font-bold shadow-xs">
+        <span class="relative flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">sensors</span>
+            <span class="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+        </span>
+        <span class="text-[10px] font-medium tracking-tight">Live</span>
+    </a>
+    <a href="about.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">info</span>
+        <span class="text-[10px] font-medium tracking-tight">About</span>
+    </a>
+</nav>
+
+</body></html>

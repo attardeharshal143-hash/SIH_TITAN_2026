@@ -1,0 +1,12 @@
+{
+  "pqc_standard": "CNSA_2",
+  "pqc_standard_label": "NSA CNSA 2.0 (Kyber / Dilithium Hybrid)",
+  "ai_model": "RF_100",
+  "entropy_threshold": 7.8,
+  "frame_limit": 50,
+  "poll_frequency_ms": 1200,
+  "auto_scroll": true,
+  "siem_format": "ECS_JSON_V2",
+  "audio_alerts": false,
+  "auto_redirect": true
+}

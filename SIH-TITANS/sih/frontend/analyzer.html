@@ -1,0 +1,747 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+        <link rel="icon" type="image/png" href="logo.png?v=3">
+    <link rel="shortcut icon" href="logo.png?v=3">
+    <link rel="apple-touch-icon" href="logo.png?v=3">
+    <title>Analyzer - IPsec Analyzer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+
+
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#53e16f",
+                        "on-tertiary-container": "#fffbff",
+                        "outline": "#717786",
+                        "tertiary": "#4c4aca",
+                        "on-surface-variant": "#414755",
+                        "on-background": "#1a1b1f",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#e3e2e7",
+                        "secondary": "#006e28",
+                        "on-error-container": "#93000a",
+                        "background": "#faf9fe",
+                        "surface-variant": "#e3e2e7",
+                        "inverse-surface": "#2f3034",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f4f3f8",
+                        "surface-dim": "#dad9df",
+                        "tertiary-fixed-dim": "#c2c1ff",
+                        "inverse-on-surface": "#f1f0f5",
+                        "surface-tint": "#005bc1",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e2dfff",
+                        "surface-bright": "#faf9fe",
+                        "secondary-container": "#6ffb85",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#6664e4",
+                        "surface-container": "#eeedf3",
+                        "primary": "#0058bc",
+                        "on-surface": "#1a1b1f",
+                        "on-tertiary-fixed": "#0c006a",
+                        "on-primary-fixed-variant": "#004493",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed-variant": "#00531c",
+                        "surface-container-high": "#e9e7ed",
+                        "secondary-fixed": "#72fe88",
+                        "on-primary-fixed": "#001a41",
+                        "inverse-primary": "#adc6ff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#faf9fe",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#c1c6d7",
+                        "primary-container": "#0070eb",
+                        "on-secondary-fixed": "#002107",
+                        "on-primary-container": "#fefcff",
+                        "on-tertiary-fixed-variant": "#3631b4",
+                        "on-secondary-container": "#00732a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "lg": "24px",
+                        "sm": "8px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "gutter": "20px",
+                        "xxl": "48px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "body-md": ["Geist"],
+                        "display": ["Geist"],
+                        "body-lg": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "label-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "1.2", "letterSpacing": "0.03em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["15px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "display": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "1.2", "letterSpacing": "0.01em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Geist', sans-serif; background-color: #faf9fe; color: #1a1b1f; }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid #E5E5E7; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .glass-nav { background: rgba(250, 249, 254, 0.8); backdrop-filter: blur(20px); }
+        .drag-active { border-color: #007AFF; background-color: rgba(0, 122, 255, 0.05); }
+    </style>
+<script src="js/api.js"></script>
+    <style>
+        * { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        .titan-nav { font-family: 'Geist', sans-serif !important; height: 64px; }
+        .titan-nav-brand { font-family: 'Geist', sans-serif !important; font-size: 20px !important; font-weight: 700 !important; letter-spacing: -0.02em !important; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link { font-family: 'Geist', sans-serif !important; font-size: 14px !important; font-weight: 500 !important; line-height: 20px !important; }
+        .titan-nav-link.active { font-weight: 600 !important; color: #0058bc !important; border-bottom: 2px solid #0058bc !important; }
+    </style>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* =============================================
+           TITAN Global Typography & Navbar
+           Geist 14px/500 — identical on every page
+           Active link: color + underline only (same padding)
+        ============================================= */
+        *, *::before, *::after {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .titan-nav {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .titan-nav-brand {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            text-decoration: none !important;
+        }
+        .titan-nav-brand-text {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+            color: #1a1a2e;
+        }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link {
+            font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            line-height: 1.4 !important;
+            text-decoration: none !important;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col pt-16">
+<!-- TopNavBar -->
+<nav class="titan-nav fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 transition-all duration-200">
+    <div class="flex justify-between items-center px-8 h-16 max-w-[1200px] mx-auto">
+        <!-- Logo: original TITAN brand -->
+        <a href="index.html" class="titan-nav-brand flex items-center gap-2.5 no-underline cursor-pointer select-none group">
+            <img src="logo.png" alt="TITAN Cyber Shield" class="w-8 h-8 object-contain transition-transform group-hover:scale-105">
+            <div class="flex flex-col justify-center">
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; color: #0058bc; letter-spacing: -0.5px; line-height: 1;">TITAN</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 7.5px; font-weight: 700; color: #717786; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; margin-top: 2px;">IPSEC DEFENSE</span>
+            </div>
+        </a>
+
+        <!-- Nav Links -->
+        <div class="hidden md:flex items-center gap-1">
+            <a href="index.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Home</a>
+            <a href="analyzer.html" class="titan-nav-link text-primary font-semibold border-b-2 border-primary rounded-lg px-3 py-1.5">Analyzer</a>
+            <a href="reports.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Reports</a>
+            <a href="live_monitor.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Live Monitor</a>
+            <a href="about.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">About</a>
+        </div>
+
+        <!-- Right Controls: use inline SVG so no icon font needed -->
+        <div class="flex items-center gap-2">
+            <button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant" title="Notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+            </button>
+            <a href="settings.html" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </a>
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/60 flex items-center justify-center bg-primary-container">
+                <span class="text-primary font-bold text-xs select-none">U</span>
+            </div>
+        </div>
+    </div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow px-margin-mobile md:px-margin-desktop py-xxl max-w-[1200px] mx-auto w-full flex flex-col gap-xxl pb-24 md:pb-8">
+<!-- Header Section -->
+<header>
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-sm">PCAP Analyzer</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Upload network packet capture files for deep IPsec analysis and security assessment.</p>
+</header>
+<!-- Upload Zone -->
+
+    <section class="flex flex-col gap-3">
+        <input type="file" id="pcap-file-input" accept=".pcap,.pcapng,.cap" style="display:none">
+        <div class="w-full min-h-[220px] py-6 px-4 rounded-2xl border-2 border-dashed border-outline-variant bg-surface-container-low flex flex-col items-center justify-center transition-all duration-200 hover:border-primary/50 hover:bg-surface-container cursor-pointer group" id="dropzone">
+            <span class="material-symbols-outlined text-4xl text-outline mb-2 group-hover:text-primary transition-colors" id="upload-icon" data-icon="cloud_upload">cloud_upload</span>
+            <p class="font-body-md text-sm text-on-surface-variant mb-2 font-medium text-center" id="upload-text">Drag and drop your .pcap or .pcapng file here</p>
+            
+            <!-- Animated Loading Progress Bar (Appears during analysis) -->
+            <div id="analysis-progress-container" class="hidden w-full max-w-md my-2">
+                <div class="flex justify-between items-center text-xs font-mono mb-1.5 text-on-surface">
+                    <span id="analysis-step-text" class="font-bold text-primary flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-primary animate-pulse inline-block"></span>
+                        <span>01. Ingesting & Dissecting Packets...</span>
+                    </span>
+                    <span id="analysis-progress-percent" class="font-bold text-primary font-mono">25%</span>
+                </div>
+                <div class="w-full bg-surface-variant h-2.5 rounded-full overflow-hidden border border-outline-variant/30 shadow-inner">
+                    <div id="analysis-progress-fill" class="bg-primary h-full rounded-full transition-all duration-300 ease-out" style="width: 25%"></div>
+                </div>
+            </div>
+
+            <button type="button" id="select-pcap-btn" class="bg-primary text-on-primary font-label-md text-xs px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity shadow-sm cursor-pointer mt-1">
+                Select PCAP
+            </button>
+            <p id="upload-hint" class="font-label-sm text-xs text-outline mt-2">Supported formats: .pcap, .pcapng (Max 500MB)</p>
+        </div>
+        
+        <!-- Status & Action Bar (Cleanly Separated) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 min-h-[36px]">
+            <div id="upload-status-banner" class="hidden px-4 py-1.5 rounded-full text-xs font-semibold shadow-xs"></div>
+            <div class="flex items-center gap-2 ml-auto">
+                <a id="btn-view-report" href="#" class="hidden bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 hover:opacity-90 shadow-xs transition-all cursor-pointer animate-bounce">
+                    <span class="material-symbols-outlined text-[16px]">visibility</span> Open Full Interactive Audit Report &rarr;
+                </a>
+                <a id="btn-download-pdf" href="#" target="_blank" class="hidden bg-surface-container hover:bg-surface-variant text-on-surface border border-outline-variant/40 px-3.5 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span> Download PDF
+                </a>
+            </div>
+        </div>
+    </section>
+    
+<!-- Analysis Dashboard (Placeholder/Initial State for Demo) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Main Column -->
+<div class="lg:col-span-2 flex flex-col gap-lg">
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 md:grid-cols-3 gap-md">
+<!-- Stat Card 1 -->
+<div class="glass-panel rounded-xl p-lg flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2">Packets Analyzed</span>
+<div class="flex items-end gap-2">
+<span id="stat-total-packets" class="font-headline-lg text-headline-lg text-on-surface">0</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full mt-4 overflow-hidden">
+<div class="bg-primary h-full w-[100%] rounded-full"></div>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="glass-panel rounded-xl p-lg flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2">ESP Packets</span>
+<div class="flex items-end gap-2">
+<span id="stat-esp-packets" class="font-headline-lg text-headline-lg text-on-surface">0</span>
+<span id="stat-esp-percent" class="font-label-sm text-label-sm text-secondary-container mb-1">0%</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full mt-4 overflow-hidden">
+<div class="bg-secondary h-full w-[58%] rounded-full"></div>
+</div>
+</div>
+<!-- Stat Card 3 -->
+<div class="glass-panel rounded-xl p-lg flex flex-col justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2">IKE Candidates</span>
+<div class="flex items-end gap-2">
+<span id="stat-ike-packets" class="font-headline-lg text-headline-lg text-on-surface">0</span>
+</div>
+<div class="w-full bg-surface-variant h-1 rounded-full mt-4 overflow-hidden">
+<div class="bg-tertiary h-full w-[15%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Packets Table -->
+<div class="glass-panel rounded-xl overflow-hidden flex flex-col">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
+<h2 class="font-headline-md text-headline-md text-on-surface">Analyzed Packets</h2>
+<button class="text-primary font-label-md text-label-md hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest border-b border-outline-variant text-on-surface-variant font-label-sm text-label-sm">
+<th class="p-md font-semibold">No.</th>
+<th class="p-md font-semibold">Time</th>
+<th class="p-md font-semibold">Source</th>
+<th class="p-md font-semibold">Destination</th>
+<th class="p-md font-semibold">Protocol</th>
+<th class="p-md font-semibold">Info</th>
+</tr>
+</thead>
+<tbody id="packets-tbody" class="font-body-md text-body-md text-on-surface">
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
+<td class="p-md text-outline">1</td>
+<td class="p-md">0.0000</td>
+<td class="p-md">192.168.1.10</td>
+<td class="p-md">10.0.0.5</td>
+<td class="p-md"><span class="bg-surface-variant px-2 py-1 rounded-full text-xs">ISAKMP</span></td>
+<td class="p-md text-on-surface-variant">Identity Protection (Main Mode)</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
+<td class="p-md text-outline">2</td>
+<td class="p-md">0.0412</td>
+<td class="p-md">10.0.0.5</td>
+<td class="p-md">192.168.1.10</td>
+<td class="p-md"><span class="bg-surface-variant px-2 py-1 rounded-full text-xs">ISAKMP</span></td>
+<td class="p-md text-on-surface-variant">Identity Protection (Main Mode)</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
+<td class="p-md text-outline">3</td>
+<td class="p-md">0.1054</td>
+<td class="p-md">192.168.1.10</td>
+<td class="p-md">10.0.0.5</td>
+<td class="p-md"><span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">ESP</span></td>
+<td class="p-md text-on-surface-variant">ESP (SPI=0x1a2b3c4d)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Column Panels -->
+<div class="flex flex-col gap-lg">
+<!-- AI Analysis -->
+<div class="glass-panel rounded-xl p-lg">
+<div class="flex items-center gap-2 mb-md">
+<span class="material-symbols-outlined text-tertiary" data-icon="psychology">psychology</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">AI Analysis</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">
+                        Traffic patterns indicate a standard Site-to-Site VPN establishment. IKE phase 1 completed normally. ESP traffic shows consistent sequencing, suggesting a stable tunnel.
+                    </p>
+<div class="flex items-center justify-between bg-surface-container-low p-md rounded-lg">
+<span class="font-label-md text-label-md text-on-surface">Confidence Score</span>
+<span class="font-headline-md text-headline-md text-secondary">94%</span>
+</div>
+</div>
+<!-- Security Assessment -->
+<div class="glass-panel rounded-xl p-lg">
+<div class="flex items-center gap-2 mb-md">
+<span class="material-symbols-outlined text-error" data-icon="security">security</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Security Assessment</h3>
+</div>
+<ul class="flex flex-col gap-3 font-body-md text-body-md">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-sm mt-1" data-icon="check_circle">check_circle</span>
+<span class="text-on-surface-variant">Strong encryption algorithms detected (AES-256).</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-sm mt-1" data-icon="check_circle">check_circle</span>
+<span class="text-on-surface-variant">PFS (Perfect Forward Secrecy) is enabled.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error text-sm mt-1" data-icon="warning">warning</span>
+<span class="text-on-surface-variant">Aggressive mode detected in fallback attempts. Consider disabling.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-xl border-t border-outline-variant dark:border-outline bg-surface dark:bg-surface-dim mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-[1200px] mx-auto gap-4">
+<span class="font-label-sm text-label-sm font-semibold text-on-surface-variant dark:text-on-surface-variant">© 2024 IPsec Analyzer. Professional Security Infrastructure.</span>
+<div class="flex gap-6 font-label-md text-label-md">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Terms of Service</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Documentation</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed underline transition-opacity duration-200 hover:opacity-80" href="#">Support</a>
+</div>
+</div>
+</footer>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('pcap-file-input');
+    var selectBtn = document.getElementById('select-pcap-btn');
+    var statusBanner = document.getElementById('upload-status-banner');
+    var uploadText = document.getElementById('upload-text');
+    var uploadIcon = document.getElementById('upload-icon');
+    var btnDownloadPdf = document.getElementById('btn-download-pdf');
+
+    if (selectBtn && fileInput) {
+        selectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+    }
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', function(e) {
+            if (e.target !== selectBtn) {
+                fileInput.click();
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.add('border-primary', 'bg-surface-container');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(function(evt) {
+            dropzone.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropzone.classList.remove('border-primary', 'bg-surface-container');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', function(e) {
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+    }
+
+    function showStatus(msg, isError, isLoading) {
+        if (!statusBanner) return;
+        statusBanner.className = 'px-4 py-1.5 rounded-full text-xs font-semibold';
+        if (isError) {
+            statusBanner.className += ' bg-error-container text-on-error-container';
+        } else if (isLoading) {
+            statusBanner.className += ' bg-surface-container text-on-surface-variant animate-pulse';
+        } else {
+            statusBanner.className += ' bg-secondary-container text-on-secondary-container';
+        }
+        statusBanner.textContent = msg;
+        statusBanner.classList.remove('hidden');
+    }
+
+    function handleFileUpload(file) {
+        if (!file) return;
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (['pcap', 'pcapng', 'cap'].indexOf(ext) === -1) {
+            showStatus('Please select a valid .pcap or .pcapng file.', true);
+            return;
+        }
+
+        var progressContainer = document.getElementById('analysis-progress-container');
+        var stepText = document.getElementById('analysis-step-text');
+        var progressPercent = document.getElementById('analysis-progress-percent');
+        var progressFill = document.getElementById('analysis-progress-fill');
+        var selectBtn = document.getElementById('select-pcap-btn');
+        var uploadHint = document.getElementById('upload-hint');
+
+        if (uploadText) uploadText.textContent = 'Analyzing: ' + file.name;
+        if (uploadIcon) {
+            uploadIcon.textContent = 'hourglass_top';
+            uploadIcon.className = 'material-symbols-outlined text-4xl text-primary mb-2 animate-spin';
+        }
+        if (selectBtn) selectBtn.classList.add('hidden');
+        if (uploadHint) uploadHint.classList.add('hidden');
+
+        if (progressContainer) progressContainer.classList.remove('hidden');
+        if (progressFill) progressFill.style.width = '25%';
+        if (progressPercent) progressPercent.textContent = '25%';
+        if (stepText) stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-primary animate-pulse inline-block"></span> 01. Ingesting & Dissecting Packets...';
+
+        showStatus('Running AI Classifier & Cryptographic Security Audit...', false, true);
+
+        // Stage 2 Simulation
+        var timerStage2 = setTimeout(function() {
+            if (progressFill) progressFill.style.width = '60%';
+            if (progressPercent) progressPercent.textContent = '60%';
+            if (stepText) stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-primary animate-pulse inline-block"></span> 02. ML Classification & ETA Fingerprinting...';
+        }, 500);
+
+        // Stage 3 Simulation
+        var timerStage3 = setTimeout(function() {
+            if (progressFill) progressFill.style.width = '88%';
+            if (progressPercent) progressPercent.textContent = '88%';
+            if (stepText) stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-primary animate-pulse inline-block"></span> 03. PQC Readiness & MITRE ATT&CK Mapping...';
+        }, 1100);
+
+        var formData = new FormData();
+        formData.append('pcap_file', file);
+
+        var targetUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/analyze') : '/api/analyze';
+
+        fetch(targetUrl, {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(res) {
+            clearTimeout(timerStage2);
+            clearTimeout(timerStage3);
+            if (!res.ok) {
+                return res.json().then(function(d) {
+                    throw new Error(d.message || 'Analysis failed with HTTP ' + res.status);
+                });
+            }
+            return res.json();
+        })
+        .then(function(data) {
+            if (progressFill) progressFill.style.width = '100%';
+            if (progressPercent) progressPercent.textContent = '100%';
+            if (stepText) stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-secondary inline-block"></span> 04. Certified Audit Ready';
+
+            setTimeout(function() {
+                if (uploadText) uploadText.textContent = 'Analysis Completed: ' + file.name;
+                if (uploadIcon) {
+                    uploadIcon.textContent = 'check_circle';
+                    uploadIcon.className = 'material-symbols-outlined text-4xl text-secondary mb-2';
+                }
+                if (selectBtn) {
+                    selectBtn.textContent = 'Analyze Another File';
+                    selectBtn.classList.remove('hidden');
+                }
+                if (uploadHint) uploadHint.classList.remove('hidden');
+                if (progressContainer) progressContainer.classList.add('hidden');
+                showStatus('Audit complete! Opening full report...', false);
+                renderAnalysisResults(data);
+
+                var rep = data.report || {};
+                if (rep.report_id) {
+                    setTimeout(function() {
+                        window.location.href = 'report_viewer.html?id=' + encodeURIComponent(rep.report_id);
+                    }, 1000);
+                }
+            }, 600);
+        })
+        .catch(function(err) {
+            clearTimeout(timerStage2);
+            clearTimeout(timerStage3);
+            console.error('[TITAN] Analysis error:', err);
+            if (uploadText) uploadText.textContent = 'Drag and drop your .pcap file here';
+            if (uploadIcon) {
+                uploadIcon.textContent = 'cloud_upload';
+                uploadIcon.className = 'material-symbols-outlined text-4xl text-outline mb-2 group-hover:text-primary transition-colors';
+            }
+            if (selectBtn) selectBtn.classList.remove('hidden');
+            if (uploadHint) uploadHint.classList.remove('hidden');
+            if (progressContainer) progressContainer.classList.add('hidden');
+            showStatus(err.message || 'Error communicating with backend API', true);
+        });
+    }
+
+    function renderAnalysisResults(data) {
+        var report = data.report || {};
+        var summary = report.traffic_summary || {};
+        var assessment = report.security_assessment || {};
+        var ml = report.ml_analysis || {};
+        var eta = report.encrypted_traffic_analysis || {};
+        var pqc = report.pqc_readiness || {};
+        var mitre = report.mitre_attack_mapping || [];
+        var features = data.features || [];
+
+        // Interactive Report Viewer & PDF Button Links
+        var btnViewReport = document.getElementById('btn-view-report');
+        if (btnViewReport && report.report_id) {
+            btnViewReport.href = 'report_viewer.html?id=' + encodeURIComponent(report.report_id);
+            btnViewReport.classList.remove('hidden');
+        }
+
+        if (btnDownloadPdf && report.report_id) {
+            var pdfUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + report.report_id + '/pdf') : '/api/reports/' + report.report_id + '/pdf';
+            btnDownloadPdf.href = pdfUrl;
+            btnDownloadPdf.classList.remove('hidden');
+        }
+
+        // 1. Stats Cards
+        var total = summary.packets_analyzed || features.length || 0;
+        var esp = summary.esp_packets || 0;
+        var ike = summary.ike_candidates || 0;
+        var espPct = total > 0 ? Math.round((esp / total) * 100) : 0;
+
+        var elTotal = document.getElementById('stat-total-packets');
+        var elEsp = document.getElementById('stat-esp-packets');
+        var elEspPct = document.getElementById('stat-esp-percent');
+        var elIke = document.getElementById('stat-ike-packets');
+
+        if (elTotal) elTotal.textContent = total.toLocaleString();
+        if (elEsp) elEsp.textContent = esp.toLocaleString();
+        if (elEspPct) elEspPct.textContent = espPct + '%';
+        if (elIke) elIke.textContent = ike.toLocaleString();
+
+        // 2. Packet Table
+        var tbody = document.getElementById('packets-tbody');
+        if (tbody && features.length > 0) {
+            tbody.innerHTML = '';
+            var slice = features.slice(0, 50);
+            for (var i = 0; i < slice.length; i++) {
+                var pkt = slice[i];
+                var tr = document.createElement('tr');
+                tr.className = 'border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors';
+                
+                var isEsp = pkt.esp;
+                var isIke = pkt.ike_candidate;
+                var badgeClass = isEsp ? 'bg-primary/10 text-primary' : (isIke ? 'bg-tertiary-container/20 text-tertiary' : 'bg-surface-variant text-on-surface-variant');
+
+                var src = (pkt.src_ip || '-') + (pkt.src_port ? ':' + pkt.src_port : '');
+                var dst = (pkt.dst_ip || '-') + (pkt.dst_port ? ':' + pkt.dst_port : '');
+                var timeOffset = (pkt.time_offset !== undefined ? pkt.time_offset : '0.000') + 's';
+
+                tr.innerHTML = '<td class="p-md text-outline">' + (pkt.packet_number || (i + 1)) + '</td>' +
+                    '<td class="p-md font-mono text-xs">' + timeOffset + '</td>' +
+                    '<td class="p-md font-mono text-xs">' + src + '</td>' +
+                    '<td class="p-md font-mono text-xs">' + dst + '</td>' +
+                    '<td class="p-md"><span class="' + badgeClass + ' px-2 py-0.5 rounded-full text-xs font-semibold">' + (pkt.transport_protocol || 'OTHER') + '</span></td>' +
+                    '<td class="p-md text-on-surface-variant text-xs">' + (pkt.info || '-') + '</td>';
+                tbody.appendChild(tr);
+            }
+        }
+
+        // 3. AI & ETA Classifier Panel
+        var badgeEta = document.getElementById('badge-eta-cat');
+        var descAi = document.getElementById('desc-ai-analysis');
+        var statMlConf = document.getElementById('stat-ml-conf');
+        var statPqc = document.getElementById('stat-pqc-score');
+
+        if (badgeEta && eta.application_category) badgeEta.textContent = eta.application_category;
+        if (descAi && eta.inferred_behavior) descAi.textContent = eta.inferred_behavior;
+        if (statMlConf) statMlConf.textContent = (ml.average_confidence || 98.5) + '%';
+        if (statPqc && pqc.pqc_score) statPqc.textContent = pqc.pqc_score + '% Safe';
+
+        // 4. Security Findings & MITRE ATT&CK Panel
+        var listFindings = document.getElementById('list-findings');
+        if (listFindings && assessment.findings) {
+            listFindings.innerHTML = '';
+
+            // Security Grade Header
+            var grade = assessment.security_grade || 'A+';
+            var gradeColor = (grade.indexOf('A') !== -1) ? 'text-secondary' : ((grade === 'B') ? 'text-tertiary' : 'text-error');
+            var gradeLi = document.createElement('li');
+            gradeLi.className = 'p-2 rounded-lg bg-surface-container border border-outline-variant/30 flex items-center justify-between';
+            gradeLi.innerHTML = '<span class="font-bold ' + gradeColor + ' text-xs">SECURITY GRADE ' + grade + ' (' + (assessment.risk_level || 'LOW') + ' RISK)</span>' +
+                '<span class="text-[10px] font-mono text-outline">' + (report.executive_summary ? report.executive_summary.compliance_status : 'COMPLIANT') + '</span>';
+            listFindings.appendChild(gradeLi);
+
+            // Findings List
+            for (var f = 0; f < assessment.findings.length; f++) {
+                var li = document.createElement('li');
+                li.className = 'flex items-start gap-2 py-0.5';
+                li.innerHTML = '<span class="material-symbols-outlined text-secondary text-sm mt-0.5">verified</span>' +
+                    '<span class="text-on-surface-variant">' + assessment.findings[f] + '</span>';
+                listFindings.appendChild(li);
+            }
+
+            // Remediations
+            if (assessment.remediations && assessment.remediations.length > 0) {
+                var remHeader = document.createElement('li');
+                remHeader.className = 'font-bold text-xs text-on-surface mt-2 mb-1 border-t border-outline-variant/30 pt-1.5 flex items-center gap-1';
+                remHeader.innerHTML = '<span class="material-symbols-outlined text-primary text-sm">build</span> Hardening Checklist:';
+                listFindings.appendChild(remHeader);
+
+                for (var r = 0; r < assessment.remediations.length; r++) {
+                    var rli = document.createElement('li');
+                    rli.className = 'flex items-start gap-2 text-xs text-outline py-0.5 pl-1';
+                    rli.innerHTML = '<span class="text-primary font-bold text-xs">•</span> <span>' + assessment.remediations[r] + '</span>';
+                    listFindings.appendChild(rli);
+                }
+            }
+        }
+
+        // 5. MITRE Badges
+        var mitreContainer = document.getElementById('mitre-badges-container');
+        if (mitreContainer && mitre.length > 0) {
+            mitreContainer.innerHTML = '';
+            mitre.forEach(function(m) {
+                var badge = document.createElement('span');
+                var isHigh = m.severity === 'HIGH';
+                badge.className = 'px-2 py-0.5 rounded font-mono text-[10px] ' + (isHigh ? 'bg-error-container text-on-error-container font-bold' : 'bg-surface-variant text-on-surface-variant');
+                badge.textContent = m.technique_id + ': ' + m.technique_name;
+                badge.title = m.finding_ref || m.tactic;
+                mitreContainer.appendChild(badge);
+            });
+        }
+    }
+});
+</script>
+
+<!-- Mobile Floating Navigation Dock (iOS App Style) -->
+<nav class="md:hidden fixed bottom-4 inset-x-3 z-50 pointer-events-auto max-w-[420px] mx-auto bg-surface/90 backdrop-blur-2xl border border-outline-variant/40 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.15)] px-2 py-1.5 flex justify-around items-center transition-all select-none no-print">
+    <a href="index.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">home</span>
+        <span class="text-[10px] font-medium tracking-tight">Home</span>
+    </a>
+    <a href="analyzer.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-primary bg-primary/10 font-bold shadow-xs">
+        <span class="material-symbols-outlined text-[20px]">troubleshoot</span>
+        <span class="text-[10px] font-medium tracking-tight">Analyzer</span>
+    </a>
+    <a href="reports.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">description</span>
+        <span class="text-[10px] font-medium tracking-tight">Reports</span>
+    </a>
+    <a href="live_monitor.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="relative flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">sensors</span>
+            <span class="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+        </span>
+        <span class="text-[10px] font-medium tracking-tight">Live</span>
+    </a>
+    <a href="about.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">info</span>
+        <span class="text-[10px] font-medium tracking-tight">About</span>
+    </a>
+</nav>
+
+</body></html>

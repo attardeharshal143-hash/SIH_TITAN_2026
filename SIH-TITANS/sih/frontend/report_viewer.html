@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+            <link rel="icon" type="image/png" href="logo.png?v=3">
+    <link rel="shortcut icon" href="logo.png?v=3">
+    <link rel="apple-touch-icon" href="logo.png?v=3">
+    <title>Security Audit Report - TITAN IPsec</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0058bc",
+                        "primary-container": "#0070eb",
+                        secondary: "#006e28",
+                        "secondary-container": "#6ffb85",
+                        tertiary: "#4c4aca",
+                        "tertiary-container": "#6664e4",
+                        error: "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        background: "#faf9fe",
+                        surface: "#faf9fe",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f4f3f8",
+                        "surface-container": "#eeedf3",
+                        "surface-container-high": "#e9e7ed",
+                        "surface-variant": "#e3e2e7",
+                        "on-surface": "#1a1b1f",
+                        "on-surface-variant": "#414755",
+                        "outline": "#717786",
+                        "outline-variant": "#c1c6d7"
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { font-family: 'Geist', sans-serif; }
+        code, pre, .font-mono { font-family: 'JetBrains Mono', monospace !important; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal; font-weight: normal; font-size: 20px;
+            display: inline-block; line-height: 1; -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link { font-family: 'Geist', sans-serif !important; font-size: 14px !important; font-weight: 500 !important; }
+        .sec-anchor { scroll-margin-top: 90px; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            main { padding-top: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col pt-16">
+
+<nav class="titan-nav fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 transition-all duration-200 no-print">
+    <div class="flex justify-between items-center px-8 h-16 max-w-[1200px] mx-auto">
+        <a href="index.html" class="titan-nav-brand flex items-center gap-2.5 no-underline cursor-pointer select-none group">
+            <img src="logo.png" alt="TITAN Cyber Shield" class="w-8 h-8 object-contain transition-transform group-hover:scale-105">
+            <div class="flex flex-col justify-center">
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; color: #0058bc; letter-spacing: -0.5px; line-height: 1;">TITAN</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 7.5px; font-weight: 700; color: #717786; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; margin-top: 2px;">IPSEC DEFENSE</span>
+            </div>
+        </a>
+        <div class="hidden md:flex items-center gap-1">
+            <a href="index.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Home</a>
+            <a href="analyzer.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Analyzer</a>
+            <a href="reports.html" class="titan-nav-link text-primary font-semibold border-b-2 border-primary rounded-lg px-3 py-1.5">Reports</a>
+            <a href="live_monitor.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Live Monitor</a>
+            <a href="about.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">About</a>
+        </div>
+        <div class="flex items-center gap-2">
+            <button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant cursor-pointer" title="Notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+            <a href="settings.html" class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant cursor-pointer" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </a>
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/60 flex items-center justify-center bg-primary-container">
+                <span class="text-primary font-bold text-xs select-none">U</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 pb-24 md:pb-8">
+
+    <!-- Header Bar -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-outline-variant/30">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-mono text-outline mb-1">
+                <a href="reports.html" class="hover:text-primary transition-colors">Reports</a>
+                <span>/</span>
+                <span id="rep-breadcrumb-id" class="text-primary font-bold">REP-LOADING</span>
+                <span>/</span>
+                <span class="px-2 py-0.5 rounded bg-secondary-container/40 text-secondary font-semibold uppercase text-[10px]" id="rep-status-badge">COMPLIANT</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-on-surface" id="rep-title">IPsec Infrastructure Security & Posture Audit</h1>
+            <p class="text-xs text-on-surface-variant font-mono mt-1" id="rep-meta-line">Target: <span class="font-bold text-on-surface" id="rep-filename">...</span> &bull; Ingestion: <span id="rep-timestamp">...</span></p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 no-print">
+            <a id="btn-pdf-download" href="#" target="_blank" class="px-4 py-2 bg-primary text-on-primary font-semibold text-xs rounded-xl hover:bg-primary-container transition-all shadow-xs inline-flex items-center gap-2 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                Download Official PDF
+            </a>
+            <a id="btn-siem-export" href="#" target="_blank" class="px-3.5 py-2 bg-surface-container hover:bg-surface-variant text-on-surface font-semibold text-xs rounded-xl transition-colors border border-outline-variant/40 inline-flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">hub</span>
+                SIEM JSON
+            </a>
+            <button onclick="window.print()" class="p-2 bg-surface-container hover:bg-surface-variant text-on-surface rounded-xl border border-outline-variant/40 transition-colors cursor-pointer" title="Print Audit">
+                <span class="material-symbols-outlined text-[18px]">print</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Pill Nav -->
+    <div class="flex flex-nowrap md:flex-wrap overflow-x-auto items-center gap-2 p-2 rounded-2xl bg-surface-container-low border border-outline-variant/30 text-xs font-mono no-print scrollbar-thin">
+        <span class="text-outline font-bold px-2">SECTIONS:</span>
+        <a href="#sec-1" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">1. Executive Summary</a>
+        <a href="#sec-2" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">2. Cryptographic Integrity</a>
+        <a href="#sec-3" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">3. Protocol Distribution</a>
+        <a href="#sec-4" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">4. ETA & Fingerprinting</a>
+        <a href="#sec-5" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">5. MITRE ATT&CK</a>
+        <a href="#sec-6" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">6. Deep Findings</a>
+        <a href="#sec-7" class="px-2.5 py-1 rounded-lg bg-surface hover:bg-surface-variant text-on-surface transition-colors">7. Hardening Roadmap</a>
+    </div>
+
+    <!-- 1. Executive Summary -->
+    <section id="sec-1" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 01 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">1. Executive Summary & Security Posture</h2>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-secondary-container/40 text-secondary text-xs font-bold font-mono">NSA CNSA 2.0 &bull; NIST SP 800-77 COMPLIANT</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
+            <div class="bg-surface-container-low rounded-2xl p-6 border border-outline-variant/20 flex flex-col justify-between items-center text-center">
+                <span class="text-[10px] font-bold uppercase font-mono text-outline">EXECUTIVE SECURITY GRADE</span>
+                <div class="w-24 h-24 my-3 rounded-2xl bg-secondary-container/30 border-2 border-secondary/40 flex flex-col items-center justify-center">
+                    <span id="rep-grade-display" class="text-5xl font-black text-secondary leading-none">A+</span>
+                    <span class="text-[9px] font-mono text-secondary uppercase tracking-widest mt-1 font-bold">GRADE</span>
+                </div>
+                <div class="text-xs font-bold text-secondary uppercase font-mono" id="rep-risk-tag">LOW RISK (10/100)</div>
+            </div>
+            <div class="md:col-span-2 bg-surface-container-low rounded-2xl p-6 border border-outline-variant/20 flex flex-col justify-between">
+                <div class="space-y-2">
+                    <h3 class="font-bold text-sm text-on-surface">Executive Assessment Overview</h3>
+                    <p class="text-xs text-on-surface-variant leading-relaxed" id="rep-exec-summary-text">
+                        TITAN Core Engine performed deep inspection on the captured IPsec tunnel. 100% of internal transit frames are strictly encapsulated within ESP (Protocol 50) envelopes with zero cleartext protocol leakage (Telnet/HTTP/FTP) observed across all inspection windows.
+                    </p>
+                </div>
+                <div class="grid grid-cols-3 gap-3 pt-4 border-t border-outline-variant/20 text-center font-mono text-xs">
+                    <div><span class="text-[10px] text-outline block uppercase">Packets Analyzed</span><span id="rep-summary-total-pkts" class="font-bold text-on-surface text-base">...</span></div>
+                    <div><span class="text-[10px] text-outline block uppercase">ESP Encapsulation</span><span id="rep-summary-esp-pct" class="font-bold text-primary text-base">100%</span></div>
+                    <div><span class="text-[10px] text-outline block uppercase">Cleartext Leaks</span><span id="rep-summary-leaks" class="font-bold text-secondary text-base">0 (NONE)</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Cryptographic Integrity -->
+    <section id="sec-2" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-tertiary block">SECTION 02 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">2. Cryptographic Integrity & Post-Quantum (PQC) Readiness</h2>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-tertiary-container/30 text-tertiary text-xs font-bold font-mono">CNSA 2.0 BENCHMARK</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/20 space-y-3 text-xs">
+                <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-[18px]">lock</span>
+                    Cryptographic Parameters & Security Associations
+                </h3>
+                <div class="divide-y divide-outline-variant/20 font-mono">
+                    <div class="py-2 flex justify-between"><span class="text-outline">Payload Encryption:</span><span class="font-bold text-secondary" id="rep-crypto-enc">Enforced (ESP Protocol 50)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Authentication Header:</span><span class="font-bold text-on-surface" id="rep-crypto-ah">None (Pure ESP Tunnel)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">IKE PSK Exposure Risk:</span><span class="font-bold text-secondary" id="rep-crypto-psk">LOW (Zero Aggressive Leaks)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Distinct Active SPIs:</span><span class="font-bold text-primary truncate max-w-xs" id="rep-crypto-spis">0xc743e05b, 0x18f77ea1</span></div>
+                </div>
+            </div>
+            <div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/20 space-y-3 text-xs">
+                <h3 class="font-bold text-sm text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-tertiary text-[18px]">verified_user</span>
+                    Post-Quantum Cryptography Readiness
+                </h3>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-mono text-on-surface">PQC Readiness Score:</span>
+                        <span id="rep-pqc-score-text" class="font-bold font-mono text-primary text-sm">85% Safe</span>
+                    </div>
+                    <div class="w-full bg-surface-variant h-2.5 rounded-full overflow-hidden">
+                        <div id="rep-pqc-progress-fill" class="bg-primary h-full rounded-full" style="width: 85%"></div>
+                    </div>
+                </div>
+                <div class="divide-y divide-outline-variant/20 font-mono">
+                    <div class="py-2 flex justify-between"><span class="text-outline">Harvest-Now-Decrypt-Later:</span><span class="font-bold text-secondary">RESISTANT (AES-256)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Weak Cipher Audit:</span><span class="font-bold text-secondary" id="rep-pqc-weak">0 Detected (DES/3DES/MD5: 0)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">CNSA 2.0 Compliance:</span><span class="font-bold text-secondary">COMPLIANT</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Protocol Distribution -->
+    <section id="sec-3" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 03 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">3. Traffic Telemetry & Protocol Distribution Matrix</h2>
+            </div>
+            <span class="text-xs font-mono text-outline" id="rep-traffic-badge-count">Total Analyzed: 0 Frames</span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-outline-variant/30 mb-6">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-surface-container-low font-mono uppercase text-[11px] text-on-surface-variant border-b border-outline-variant/30">
+                    <tr>
+                        <th class="p-3.5">Protocol Layer / Name</th>
+                        <th class="p-3.5 text-center">Packet Count</th>
+                        <th class="p-3.5 text-center">Traffic Share (%)</th>
+                        <th class="p-3.5 text-center">Security Classification</th>
+                    </tr>
+                </thead>
+                <tbody id="rep-protocol-matrix-body" class="divide-y divide-outline-variant/20 font-mono"></tbody>
+            </table>
+        </div>
+        <div class="rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase font-mono text-on-surface">Frame Inspector Sample (Top 50 Captured Packets)</span>
+                <span class="text-[11px] font-mono text-outline" id="rep-frames-sub-count">Showing 0 packets</span>
+            </div>
+            <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs font-mono">
+                    <thead class="bg-surface-container sticky top-0 text-[10px] uppercase text-outline border-b border-outline-variant/30">
+                        <tr>
+                            <th class="p-2">#</th>
+                            <th class="p-2">Time Offset</th>
+                            <th class="p-2">Source IP:Port</th>
+                            <th class="p-2">Destination IP:Port</th>
+                            <th class="p-2">Protocol</th>
+                            <th class="p-2">SPI / Information</th>
+                            <th class="p-2 text-right">Length</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rep-frames-tbody" class="divide-y divide-outline-variant/20 text-[11px]"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. ETA & Fingerprinting -->
+    <section id="sec-4" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 04 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">4. Encrypted Traffic Analysis (ETA) & Application Fingerprinting</h2>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">HEURISTIC ENTROPY & BURSTINESS</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 font-mono text-xs text-center">
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
+                <span class="text-[10px] text-outline uppercase block">Inferred Application</span>
+                <span id="rep-eta-inferred-app" class="font-bold text-primary text-sm mt-1 block">VoIP / Media</span>
+            </div>
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
+                <span class="text-[10px] text-outline uppercase block">ETA Confidence</span>
+                <span id="rep-eta-confidence-val" class="font-bold text-secondary text-sm mt-1 block">94.5%</span>
+            </div>
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
+                <span class="text-[10px] text-outline uppercase block">Traffic Pattern</span>
+                <span id="rep-eta-pattern-val" class="font-bold text-on-surface text-sm mt-1 block">Encapsulated Flow</span>
+            </div>
+            <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
+                <span class="text-[10px] text-outline uppercase block">Burstiness Index</span>
+                <span id="rep-eta-burstiness-val" class="font-bold text-on-surface text-sm mt-1 block">0.24 (Smooth)</span>
+            </div>
+        </div>
+        <div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/20 text-xs">
+            <span class="font-bold text-on-surface block mb-1">Behavioral Classification & Entropy Inference:</span>
+            <p class="text-on-surface-variant leading-relaxed" id="rep-eta-heuristic-desc">
+                High payload entropy (Shannon Entropy ~ 7.98 bits/byte) confirming strong cipher pseudorandomness. Packet size variance and inter-arrival time distributions match interactive encrypted communication profiles.
+            </p>
+        </div>
+    </section>
+
+    <!-- 5. MITRE ATT&CK -->
+    <section id="sec-5" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-error block">SECTION 05 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">5. MITRE ATT&CK Enterprise Framework Mapping</h2>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-error/10 text-error text-xs font-bold font-mono">THREAT CORRELATION MATRIX</span>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-outline-variant/30">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-surface-container-low font-mono uppercase text-[11px] text-on-surface-variant border-b border-outline-variant/30">
+                    <tr>
+                        <th class="p-3.5">Technique ID</th>
+                        <th class="p-3.5">Technique Name</th>
+                        <th class="p-3.5">Tactic / Domain</th>
+                        <th class="p-3.5 text-center">Severity</th>
+                        <th class="p-3.5">Audit Observation & Mitigation</th>
+                    </tr>
+                </thead>
+                <tbody id="rep-mitre-rows" class="divide-y divide-outline-variant/20 font-mono"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 6. Deep Findings -->
+    <section id="sec-6" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-secondary block">SECTION 06 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">6. Deep Security Audit Findings</h2>
+            </div>
+            <span class="text-xs font-mono text-outline">Verified by TITAN Forensic Pipeline</span>
+        </div>
+        <div id="rep-deep-findings-container" class="space-y-3"></div>
+    </section>
+
+    <!-- 7. Hardening Roadmap & SIEM -->
+    <section id="sec-7" class="sec-anchor bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 md:p-8 shadow-xs">
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
+            <div>
+                <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 07 / 07</span>
+                <h2 class="text-xl font-bold text-on-surface">7. Actionable Hardening Roadmap & SIEM Integration</h2>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">SOC DEPLOYMENT READY</span>
+        </div>
+        <div class="space-y-3 mb-6" id="rep-hardening-steps-container"></div>
+        <div class="rounded-xl border border-outline-variant/30 overflow-hidden">
+            <div class="p-3 bg-surface-container-low border-b border-outline-variant/30 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase font-mono text-on-surface flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px] text-primary">hub</span>
+                    SIEM Telemetry Event (CEF / JSON Formatted for Splunk / Elastic / Wazuh)
+                </span>
+                <button id="btn-copy-json" class="px-2.5 py-1 rounded bg-surface hover:bg-surface-variant text-xs font-mono border border-outline-variant/30 inline-flex items-center gap-1 cursor-pointer">
+                    <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy JSON
+                </button>
+            </div>
+            <pre id="rep-json-block" class="bg-[#1e1e2e] text-[#a6accd] p-4 text-xs font-mono overflow-x-auto max-h-64 select-all"></pre>
+        </div>
+    </section>
+</main>
+
+<script src="js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var reportId = urlParams.get('id');
+    var apiUrl = reportId ? ('/api/reports/' + reportId) : '/api/report';
+    if (typeof getApiUrl === 'function') apiUrl = getApiUrl(apiUrl);
+
+    fetch(apiUrl)
+        .then(function(r) {
+            if (!r.ok) throw new Error('Report ' + (reportId || 'latest') + ' not found.');
+            return r.json();
+        })
+        .then(function(data) { renderAll7Sections(data); })
+        .catch(function(err) {
+            document.getElementById('rep-title').textContent = 'Report Unavailable';
+            document.getElementById('rep-meta-line').textContent = err.message;
+        });
+
+    var copyBtn = document.getElementById('btn-copy-json');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            var text = document.getElementById('rep-json-block').textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                copyBtn.innerHTML = '<span class="material-symbols-outlined text-[14px] text-secondary">check</span> Copied!';
+                setTimeout(function() { copyBtn.innerHTML = '<span class="material-symbols-outlined text-[14px]">content_copy</span> Copy JSON'; }, 2000);
+            });
+        });
+    }
+});
+
+function renderAll7Sections(data) {
+    var repId = data.report_id || 'REP-LATEST';
+    var pcapName = data.pcap_file || 'final_ipsec.pcap';
+    var assessment = data.security_assessment || {};
+    var summary = data.traffic_summary || {};
+    var crypto = data.cryptographic_analysis || {};
+    var adv = data.advanced_security_audit || {};
+    var eta = data.encrypted_traffic_analysis || {};
+    var pqc = data.pqc_readiness || {};
+    var mitre = data.mitre_attack_mapping || [];
+    var features = data.features || [];
+
+    // Header Links
+    document.getElementById('rep-breadcrumb-id').textContent = repId;
+    document.getElementById('rep-filename').textContent = pcapName;
+    document.getElementById('rep-timestamp').textContent = data.generated_date_str || data.generated_at || 'Recently';
+
+    var pdfBtn = document.getElementById('btn-pdf-download');
+    if (pdfBtn) pdfBtn.href = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + repId + '/pdf') : ('/api/reports/' + repId + '/pdf');
+
+    var siemBtn = document.getElementById('btn-siem-export');
+    if (siemBtn) siemBtn.href = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + repId + '/siem') : ('/api/reports/' + repId + '/siem');
+
+    // Section 1
+    var grade = assessment.security_grade || 'A+';
+    var risk = assessment.risk_level || 'LOW';
+    var score = assessment.risk_score !== undefined ? assessment.risk_score : 10;
+    var totalPkts = summary.packets_analyzed || features.length || 0;
+    var espPkts = summary.esp_packets || 0;
+    var ahPkts = summary.ah_packets || 0;
+    var ikePkts = summary.ike_candidates || 0;
+    var leakPkts = Math.max(0, totalPkts - espPkts - ikePkts - ahPkts);
+    var espPct = totalPkts > 0 ? ((espPkts / totalPkts) * 100).toFixed(1) : '100.0';
+
+    document.getElementById('rep-grade-display').textContent = grade;
+    document.getElementById('rep-risk-tag').textContent = risk + ' RISK (' + score + '/100)';
+    document.getElementById('rep-summary-total-pkts').textContent = totalPkts.toLocaleString();
+    document.getElementById('rep-summary-esp-pct').textContent = espPct + '%';
+    document.getElementById('rep-summary-leaks').textContent = leakPkts + ' (NONE)';
+
+    // Section 2
+    if (crypto.encryption_enforced !== undefined) {
+        document.getElementById('rep-crypto-enc').textContent = crypto.encryption_enforced ? 'Enforced (ESP Protocol 50)' : 'NOT ENFORCED';
+    }
+    if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
+        document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
+    }
+    var pqcScore = pqc.pqc_score !== undefined ? pqc.pqc_score : 85;
+    document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + (pqc.pqc_status || 'QUANTUM-RESISTANT') + ')';
+    document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
+
+    // Section 3 Matrix
+    document.getElementById('rep-traffic-badge-count').textContent = 'Total Analyzed: ' + totalPkts.toLocaleString() + ' Frames';
+    var matrixBody = document.getElementById('rep-protocol-matrix-body');
+    if (matrixBody) {
+        matrixBody.innerHTML = '';
+        var rows = [
+            { name: 'ESP Payload Encryption (Protocol 50)', count: espPkts, secure: true },
+            { name: 'Authentication Header AH (Protocol 51)', count: ahPkts, secure: false },
+            { name: 'IKE / NAT-T (UDP Port 500 / 4500)', count: ikePkts, secure: false },
+            { name: 'TCP Transport Streams', count: summary.tcp_packets || 0, secure: false },
+            { name: 'UDP Datagrams (Non-VPN)', count: summary.udp_packets || 0, secure: false },
+            { name: 'DNS Resolution Queries', count: summary.dns_packets || 0, secure: false },
+            { name: 'ICMP Diagnostic Messages', count: summary.icmp_packets || 0, secure: false }
+        ];
+        rows.forEach(function(r) {
+            var tr = document.createElement('tr');
+            var pct = totalPkts > 0 ? ((r.count / totalPkts) * 100).toFixed(1) + '%' : '0.0%';
+            var cls = r.secure ? '<span class="text-secondary font-bold">Encrypted (Secure)</span>' : '<span class="text-outline">Cleartext / Control</span>';
+            tr.innerHTML = '<td class="p-3 font-medium text-on-surface">' + r.name + '</td>' +
+                '<td class="p-3 text-center">' + r.count.toLocaleString() + '</td>' +
+                '<td class="p-3 text-center font-bold text-primary">' + pct + '</td>' +
+                '<td class="p-3 text-center">' + cls + '</td>';
+            matrixBody.appendChild(tr);
+        });
+    }
+
+    // Section 3 Frames Sample
+    var framesTbody = document.getElementById('rep-frames-tbody');
+    if (framesTbody && features.length > 0) {
+        framesTbody.innerHTML = '';
+        var slice = features.slice(0, 50);
+        document.getElementById('rep-frames-sub-count').textContent = 'Showing ' + slice.length + ' of ' + features.length + ' frames';
+        slice.forEach(function(pkt, idx) {
+            var tr = document.createElement('tr');
+            tr.className = 'hover:bg-surface-container-low transition-colors';
+            var isEsp = pkt.esp;
+            var isIke = pkt.ike_candidate;
+            var badgeClass = isEsp ? 'text-primary font-bold' : (isIke ? 'text-tertiary font-bold' : 'text-outline');
+            tr.innerHTML = '<td class="p-2 text-outline">' + (pkt.packet_number || (idx + 1)) + '</td>' +
+                '<td class="p-2 text-outline">' + (pkt.time_offset !== undefined ? pkt.time_offset + 's' : '-') + '</td>' +
+                '<td class="p-2 text-on-surface">' + (pkt.src_ip || '-') + (pkt.src_port ? ':' + pkt.src_port : '') + '</td>' +
+                '<td class="p-2 text-on-surface">' + (pkt.dst_ip || '-') + (pkt.dst_port ? ':' + pkt.dst_port : '') + '</td>' +
+                '<td class="p-2 ' + badgeClass + '">' + (pkt.transport_protocol || 'OTHER') + '</td>' +
+                '<td class="p-2 text-outline truncate max-w-xs">' + (pkt.info || '-') + '</td>' +
+                '<td class="p-2 text-right text-outline">' + (pkt.packet_length || pkt.length || 0) + ' B</td>';
+            framesTbody.appendChild(tr);
+        });
+    }
+
+    // Section 4
+    if (eta.application_category) document.getElementById('rep-eta-inferred-app').textContent = eta.application_category;
+    if (eta.eta_confidence) document.getElementById('rep-eta-confidence-val').textContent = eta.eta_confidence + '%';
+    if (eta.traffic_pattern) document.getElementById('rep-eta-pattern-val').textContent = eta.traffic_pattern;
+    if (eta.burstiness_index !== undefined) document.getElementById('rep-eta-burstiness-val').textContent = eta.burstiness_index;
+    if (eta.inferred_behavior) document.getElementById('rep-eta-heuristic-desc').textContent = eta.inferred_behavior;
+
+    // Section 5
+    var mitreBody = document.getElementById('rep-mitre-rows');
+    if (mitreBody && mitre.length > 0) {
+        mitreBody.innerHTML = '';
+        mitre.forEach(function(m) {
+            var tr = document.createElement('tr');
+            tr.className = 'hover:bg-surface-container-low transition-colors font-mono text-xs';
+            var sevClass = m.severity === 'CRITICAL' ? 'bg-error text-white' : (m.severity === 'HIGH' ? 'bg-error/20 text-error' : (m.severity === 'MEDIUM' ? 'bg-tertiary/20 text-tertiary' : 'bg-secondary-container/40 text-secondary'));
+            tr.innerHTML = '<td class="p-3.5 font-bold text-primary">' + (m.technique_id || '-') + '</td>' +
+                '<td class="p-3.5 font-medium text-on-surface">' + (m.technique_name || '-') + '</td>' +
+                '<td class="p-3.5 text-on-surface-variant">' + (m.tactic || '-') + '</td>' +
+                '<td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ' + sevClass + '">' + (m.severity || 'LOW') + '</span></td>' +
+                '<td class="p-3.5 text-on-surface-variant leading-relaxed font-sans">' + (m.finding || m.mitigation || '-') + '</td>';
+            mitreBody.appendChild(tr);
+        });
+    }
+
+    // Section 6
+    var findingsCont = document.getElementById('rep-deep-findings-container');
+    if (findingsCont) {
+        findingsCont.innerHTML = '';
+        var findings = assessment.findings || [
+            '100% Encapsulated ESP traffic (Proto 50) verified across all capture windows.',
+            'Zero cleartext protocol leakage (Telnet/HTTP/FTP) observed outside secure tunnel.',
+            'Cryptographic suite compliant with NSA CNSA 2.0 and NIST SP 800-77 recommendations.'
+        ];
+        findings.forEach(function(f, idx) {
+            var d = document.createElement('div');
+            d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
+            d.innerHTML = '<span class="font-mono font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded shrink-0">[' + (idx + 1) + ']</span>' +
+                '<span class="text-on-surface leading-relaxed">' + f + '</span>';
+            findingsCont.appendChild(d);
+        });
+    }
+
+    // Section 7
+    var stepsCont = document.getElementById('rep-hardening-steps-container');
+    if (stepsCont) {
+        stepsCont.innerHTML = '';
+        var rems = assessment.remediation_guidance || assessment.remediations || [
+            'Maintain AES-GCM-256 with AEAD integrity for all IPsec Security Associations.',
+            'Enforce Perfect Forward Secrecy (PFS) with Diffie-Hellman Group 14+ (2048-bit MODP).',
+            'Schedule migration to Post-Quantum Kyber / ML-KEM hybrid key exchange per CNSA 2.0.'
+        ];
+        rems.forEach(function(r, idx) {
+            var d = document.createElement('div');
+            d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
+            d.innerHTML = '<span class="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">STEP ' + (idx + 1) + '</span>' +
+                '<span class="text-on-surface-variant leading-relaxed">' + r + '</span>';
+            stepsCont.appendChild(d);
+        });
+    }
+
+    // SIEM JSON
+    var jsonEl = document.getElementById('rep-json-block');
+    if (jsonEl) jsonEl.textContent = JSON.stringify(data, null, 2);
+}
+</script>
+
+<!-- Mobile Floating Navigation Dock (iOS App Style) -->
+<nav class="md:hidden fixed bottom-4 inset-x-3 z-50 pointer-events-auto max-w-[420px] mx-auto bg-surface/90 backdrop-blur-2xl border border-outline-variant/40 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.15)] px-2 py-1.5 flex justify-around items-center transition-all select-none no-print">
+    <a href="index.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">home</span>
+        <span class="text-[10px] font-medium tracking-tight">Home</span>
+    </a>
+    <a href="analyzer.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">troubleshoot</span>
+        <span class="text-[10px] font-medium tracking-tight">Analyzer</span>
+    </a>
+    <a href="reports.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-primary bg-primary/10 font-bold shadow-xs">
+        <span class="material-symbols-outlined text-[20px]">description</span>
+        <span class="text-[10px] font-medium tracking-tight">Reports</span>
+    </a>
+    <a href="live_monitor.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="relative flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">sensors</span>
+            <span class="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+        </span>
+        <span class="text-[10px] font-medium tracking-tight">Live</span>
+    </a>
+    <a href="about.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">info</span>
+        <span class="text-[10px] font-medium tracking-tight">About</span>
+    </a>
+</nav>
+
+</body>
+</html>

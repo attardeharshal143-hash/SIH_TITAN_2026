@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link rel="icon" type="image/png" href="logo.png?v=3">
+    <link rel="shortcut icon" href="logo.png?v=3">
+    <link rel="apple-touch-icon" href="logo.png?v=3">
+    <title>TITAN Settings & Configuration</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0058bc",
+                        "primary-container": "#0070eb",
+                        secondary: "#006e28",
+                        "secondary-container": "#6ffb85",
+                        tertiary: "#4c4aca",
+                        "tertiary-container": "#6664e4",
+                        error: "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        background: "#faf9fe",
+                        surface: "#faf9fe",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f4f3f8",
+                        "surface-container": "#eeedf3",
+                        "surface-container-high": "#e9e7ed",
+                        "surface-variant": "#e3e2e7",
+                        "on-surface": "#1a1b1f",
+                        "on-surface-variant": "#414755",
+                        "outline": "#717786",
+                        "outline-variant": "#c1c6d7"
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif; }
+        code, pre, .font-mono { font-family: 'JetBrains Mono', monospace !important; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined' !important;
+            font-style: normal; font-weight: normal; font-size: 20px;
+            display: inline-block; line-height: 1; -webkit-font-smoothing: antialiased;
+        }
+        .titan-nav-link { font-size: 14px !important; font-weight: 500 !important; }
+        .sec-card { scroll-margin-top: 90px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col pt-16">
+
+<!-- Top Navigation -->
+<nav class="titan-nav fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/30 transition-all duration-200">
+    <div class="flex justify-between items-center px-8 h-16 max-w-[1200px] mx-auto">
+        <a href="index.html" class="titan-nav-brand flex items-center gap-2.5 no-underline cursor-pointer select-none group">
+            <img src="logo.png" alt="TITAN Cyber Shield" class="w-8 h-8 object-contain transition-transform group-hover:scale-105">
+            <div class="flex flex-col justify-center">
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; color: #0058bc; letter-spacing: -0.5px; line-height: 1;">TITAN</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 7.5px; font-weight: 700; color: #717786; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1; margin-top: 2px;">IPSEC DEFENSE</span>
+            </div>
+        </a>
+
+        <div class="hidden md:flex items-center gap-1">
+            <a href="index.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Home</a>
+            <a href="analyzer.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Analyzer</a>
+            <a href="reports.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Reports</a>
+            <a href="live_monitor.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">Live Monitor</a>
+            <a href="about.html" class="titan-nav-link text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-variant/40 rounded-lg px-3 py-1.5">About</a>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button class="p-2 rounded-full hover:bg-surface-variant/50 transition-colors text-on-surface-variant cursor-pointer" title="Notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+            <a href="settings.html" class="p-2 rounded-full bg-primary/10 text-primary transition-colors cursor-pointer" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </a>
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/60 flex items-center justify-center bg-primary-container">
+                <span class="text-primary font-bold text-xs select-none">U</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Settings View -->
+<main class="flex-grow w-full max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 pb-24 md:pb-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-outline-variant/30">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-on-surface">System Settings & Preferences</h1>
+            <p class="text-xs text-on-surface-variant font-mono mt-1">Manage core engine parameters, forensic thresholds, and SIEM integrations.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="btn-save-all" class="px-4 py-2 bg-primary text-white font-semibold text-xs rounded-xl hover:bg-primary-container transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">save</span>
+                Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Layout Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Sidebar Navigation -->
+        <aside class="md:col-span-1">
+            <div class="sticky top-24 space-y-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-2 shadow-xs text-xs font-medium">
+                <a href="#sec-forensics" class="nav-item flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 text-primary font-bold transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">security</span>
+                    Forensic Engine & PQC
+                </a>
+                <a href="#sec-telemetry" class="nav-item flex items-center gap-2 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-variant/40 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">sensors</span>
+                    Real-Time Telemetry
+                </a>
+                <a href="#sec-siem" class="nav-item flex items-center gap-2 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-variant/40 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">database</span>
+                    SIEM & Data Storage
+                </a>
+                <a href="#sec-general" class="nav-item flex items-center gap-2 px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-variant/40 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">tune</span>
+                    General Preferences
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Cards -->
+        <div class="md:col-span-3 space-y-6">
+
+            <!-- 1. Forensic Engine & PQC Parameters -->
+            <section id="sec-forensics" class="sec-card bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/20">
+                    <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">security</span>
+                        Forensic Inspection & Cryptography Thresholds
+                    </h2>
+                    <span class="text-[11px] font-mono text-outline">CORE ENGINE v2.0</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">Quantum Compliance Standard</label>
+                        <select id="sel-pqc-standard" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono text-on-surface">
+                            <option value="CNSA_2">NSA CNSA 2.0 (Kyber / Dilithium Hybrid)</option>
+                            <option value="NIST_800_77">NIST SP 800-77 High-Assurance IPsec</option>
+                            <option value="FIPS_140_3">FIPS 140-3 Cryptographic Module Standard</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">AI ETA Classifier Heuristic</label>
+                        <select id="sel-ai-model" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono text-on-surface">
+                            <option value="RF_100">Random Forest (100 Estimators, 98.5% Accuracy)</option>
+                            <option value="ENTROPY_ONLY">Pure Shannon Entropy Decomposition</option>
+                            <option value="HYBRID">Hybrid ML + Heuristic Tunnel Inspection</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">Shannon Entropy Leak Threshold</label>
+                        <input id="input-entropy-thresh" type="text" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 font-mono text-xs text-on-surface" value="7.80 bits/byte">
+                        <p class="text-outline text-[11px] mt-1">Payloads below this threshold are flagged for potential cleartext leaks.</p>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">Frame Inspector Sample Limit</label>
+                        <select id="sel-frame-limit" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono text-on-surface">
+                            <option value="50">50 Frames (Optimal UI Rendering)</option>
+                            <option value="100">100 Frames (Extended Sample)</option>
+                            <option value="250">250 Frames (Deep Audit)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Real-Time Telemetry Settings -->
+            <section id="sec-telemetry" class="sec-card bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/20">
+                    <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-secondary text-[20px]">sensors</span>
+                        Real-Time Monitor & Telemetry Buffer
+                    </h2>
+                    <span class="text-[11px] font-mono text-secondary font-bold">ACTIVE</span>
+                </div>
+                <div class="space-y-3 text-xs">
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">Live Stream Polling Frequency</span>
+                            <span class="text-on-surface-variant text-[11px]">Interval between background packet pulls from interface socket.</span>
+                        </div>
+                        <select id="sel-poll-freq" class="bg-surface border border-outline-variant/40 rounded-lg px-2.5 py-1 text-xs font-mono">
+                            <option value="1200">1.2 seconds (Default Smooth)</option>
+                            <option value="800">0.8 seconds (High-Fidelity)</option>
+                            <option value="2500">2.5 seconds (Low-Bandwidth)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">Auto-Scroll Packet Log</span>
+                            <span class="text-on-surface-variant text-[11px]">Automatically scroll the live feed table to the latest captured frame.</span>
+                        </div>
+                        <input id="chk-auto-scroll" type="checkbox" checked class="w-4 h-4 text-primary rounded focus:ring-primary">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. SIEM & Data Storage -->
+            <section id="sec-siem" class="sec-card bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/20">
+                    <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-tertiary text-[20px]">database</span>
+                        SIEM Telemetry & Report Storage Management
+                    </h2>
+                </div>
+                <div class="space-y-4 text-xs">
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">SIEM Event Output Standard</span>
+                            <span class="text-on-surface-variant text-[11px]">JSON schema formatted for direct Elastic Common Schema (ECS), Splunk, or Wazuh.</span>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface border border-outline-variant/30 font-mono text-[11px] font-bold text-primary">ECS / JSON v2</span>
+                    </div>
+
+                    <div class="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">Purge Stored Reports</span>
+                            <span class="text-outline text-[11px]">Clear all historical .json and .pdf audit reports from the server.</span>
+                        </div>
+                        <button id="btn-clear-reports" class="px-3 py-1.5 bg-error/10 hover:bg-error/20 text-error font-bold rounded-xl border border-error/30 transition-colors inline-flex items-center gap-1 cursor-pointer">
+                            <span class="material-symbols-outlined text-[16px]">delete_sweep</span>
+                            Purge All Reports
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. General Preferences -->
+            <section id="sec-general" class="sec-card bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/20">
+                    <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-outline text-[20px]">tune</span>
+                        Interface & Alert Preferences
+                    </h2>
+                </div>
+                <div class="space-y-3 text-xs">
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">High-Priority Incident Audio Chimes</span>
+                            <span class="text-on-surface-variant text-[11px]">Play subtle sound alerts when cleartext protocol leaks or SPI drops occur in Live Monitor.</span>
+                        </div>
+                        <input id="chk-audio-alerts" type="checkbox" class="w-4 h-4 text-primary rounded focus:ring-primary">
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low border border-outline-variant/20">
+                        <div>
+                            <span class="font-bold text-on-surface block">Auto-Redirect to Report Viewer</span>
+                            <span class="text-on-surface-variant text-[11px]">Instantly navigate to the 7-section report viewer as soon as PCAP or live analysis completes.</span>
+                        </div>
+                        <input id="chk-auto-redirect" type="checkbox" checked class="w-4 h-4 text-primary rounded focus:ring-primary">
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</main>
+
+<!-- Mobile Floating Navigation Dock -->
+<nav class="md:hidden fixed bottom-4 inset-x-3 z-50 pointer-events-auto max-w-[420px] mx-auto bg-surface/90 backdrop-blur-2xl border border-outline-variant/40 rounded-full shadow-[0_12px_36px_rgba(0,0,0,0.15)] px-2 py-1.5 flex justify-around items-center transition-all select-none no-print">
+    <a href="index.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">home</span>
+        <span class="text-[10px] font-medium tracking-tight">Home</span>
+    </a>
+    <a href="analyzer.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">troubleshoot</span>
+        <span class="text-[10px] font-medium tracking-tight">Analyzer</span>
+    </a>
+    <a href="reports.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">description</span>
+        <span class="text-[10px] font-medium tracking-tight">Reports</span>
+    </a>
+    <a href="live_monitor.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="relative flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">sensors</span>
+            <span class="absolute -top-0.5 -right-1 w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+        </span>
+        <span class="text-[10px] font-medium tracking-tight">Live</span>
+    </a>
+    <a href="about.html" class="flex flex-col items-center py-1 px-3 rounded-full transition-all text-on-surface-variant hover:text-primary">
+        <span class="material-symbols-outlined text-[20px]">info</span>
+        <span class="text-[10px] font-medium tracking-tight">About</span>
+    </a>
+</nav>
+
+<script src="js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var btnSaveAll = document.getElementById('btn-save-all');
+    var btnClearReports = document.getElementById('btn-clear-reports');
+    var elPqc = document.getElementById('sel-pqc-standard');
+    var elAi = document.getElementById('sel-ai-model');
+    var elEntropy = document.getElementById('input-entropy-thresh');
+    var elFrames = document.getElementById('sel-frame-limit');
+    var elFreq = document.getElementById('sel-poll-freq');
+    var elAutoScroll = document.getElementById('chk-auto-scroll');
+    var elAudio = document.getElementById('chk-audio-alerts');
+    var elRedirect = document.getElementById('chk-auto-redirect');
+
+    // 1. Fetch live settings directly from the backend
+    var getUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/settings') : '/api/settings';
+    fetch(getUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.settings) {
+                var s = d.settings;
+                if (elPqc && s.pqc_standard) elPqc.value = s.pqc_standard;
+                if (elAi && s.ai_model) elAi.value = s.ai_model;
+                if (elEntropy && s.entropy_threshold !== undefined) elEntropy.value = s.entropy_threshold + ' bits/byte';
+                if (elFrames && s.frame_limit) elFrames.value = s.frame_limit;
+                if (elFreq && s.poll_frequency_ms) elFreq.value = s.poll_frequency_ms;
+                if (elAutoScroll && s.auto_scroll !== undefined) elAutoScroll.checked = !!s.auto_scroll;
+                if (elAudio && s.audio_alerts !== undefined) elAudio.checked = !!s.audio_alerts;
+                if (elRedirect && s.auto_redirect !== undefined) elRedirect.checked = !!s.auto_redirect;
+            }
+        })
+        .catch(function(err) {
+            console.warn('[TITAN] Could not load backend settings, falling back to local storage:', err);
+        });
+
+    // 2. Save settings to backend
+    if (btnSaveAll) {
+        btnSaveAll.addEventListener('click', function() {
+            var rawEntropy = elEntropy ? parseFloat(elEntropy.value.replace(/[^0-9.]/g, '')) : 7.80;
+            var payload = {
+                pqc_standard: elPqc ? elPqc.value : 'CNSA_2',
+                ai_model: elAi ? elAi.value : 'RF_100',
+                entropy_threshold: isNaN(rawEntropy) ? 7.80 : rawEntropy,
+                frame_limit: elFrames ? parseInt(elFrames.value) : 50,
+                poll_frequency_ms: elFreq ? parseInt(elFreq.value) : 1200,
+                auto_scroll: elAutoScroll ? elAutoScroll.checked : true,
+                audio_alerts: elAudio ? elAudio.checked : false,
+                auto_redirect: elRedirect ? elRedirect.checked : true
+            };
+
+            // Save to LocalStorage for instant client caching
+            localStorage.setItem('TITAN_SETTINGS', JSON.stringify(payload));
+            localStorage.setItem('TITAN_POLL_FREQ', payload.poll_frequency_ms);
+
+            // Transmit to Backend REST Endpoint
+            btnSaveAll.disabled = true;
+            btnSaveAll.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Saving...';
+
+            var postUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/settings') : '/api/settings';
+            fetch(postUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                btnSaveAll.disabled = false;
+                btnSaveAll.innerHTML = '<span class="material-symbols-outlined text-[16px] text-secondary">check</span> Synchronized!';
+                setTimeout(function() {
+                    btnSaveAll.innerHTML = '<span class="material-symbols-outlined text-[16px]">save</span> Save Changes';
+                }, 2000);
+            })
+            .catch(function(err) {
+                btnSaveAll.disabled = false;
+                btnSaveAll.innerHTML = '<span class="material-symbols-outlined text-[16px]">save</span> Save Changes';
+                alert('Saved locally, but backend sync returned: ' + err.message);
+            });
+        });
+    }
+
+    // 3. Purge Reports Handler
+    if (btnClearReports) {
+        btnClearReports.addEventListener('click', function() {
+            if (confirm('Are you sure you want to purge all stored reports? This action cannot be undone.')) {
+                var clearUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/clear') : '/api/reports/clear';
+                fetch(clearUrl, { method: 'POST' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        alert(d.message || 'All reports purged successfully!');
+                    })
+                    .catch(function(e) {
+                        alert('Error clearing reports: ' + e.message);
+                    });
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>
