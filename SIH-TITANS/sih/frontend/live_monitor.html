@@ -383,6 +383,19 @@
             <option value="">Auto-Detect Default Interface</option>
         </select>
     </div>
+    <div class="mb-md">
+        <div class="flex justify-between items-center mb-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant uppercase">Target Packet Limit</label>
+            <span id="target-packet-badge" class="text-[11px] font-mono text-primary font-bold">100 Packets</span>
+        </div>
+        <select id="packet-limit-select" class="w-full bg-surface-container text-on-surface font-body-md text-xs rounded-lg p-2 border border-outline-variant/30 focus:ring-primary focus:border-primary font-mono">
+            <option value="50">50 Packets (Quick Sample)</option>
+            <option value="100" selected>100 Packets (Recommended Standard)</option>
+            <option value="250">250 Packets (Deep Forensic Audit)</option>
+            <option value="500">500 Packets (Extended Stream)</option>
+            <option value="0">Continuous / Unlimited (Manual Stop)</option>
+        </select>
+    </div>
     <div class="flex gap-md mb-2">
         <button id="btn-resume-capture" type="button" class="flex-1 bg-primary text-on-primary font-label-md text-label-md py-2 rounded-lg flex items-center justify-center gap-xs hover:bg-primary/90 transition-colors shadow-sm cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">play_arrow</span> Start Capture
@@ -394,8 +407,20 @@
     <button id="btn-analyze-live" type="button" class="w-full bg-secondary text-on-secondary font-label-md text-xs py-2 rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-opacity shadow-sm cursor-pointer mb-2">
         <span class="material-symbols-outlined text-[16px]">security_update_good</span> Analyze Live Feed & Generate Report
     </button>
-    <div id="live-audit-result" class="hidden p-3 rounded-lg bg-surface-container border border-secondary/40 shadow-sm space-y-2 mb-2"></div>
-    <div id="live-status-message" class="hidden p-2 rounded text-xs font-mono mb-2"></div>
+    <!-- Sleek Multi-Stage Progress Bar -->
+    <div id="live-progress-container" class="hidden my-2.5 p-3.5 bg-surface-container-low rounded-xl border border-outline-variant/30 shadow-xs space-y-2">
+        <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-on-surface font-semibold flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-primary text-[16px] animate-spin">sync</span>
+                <span id="live-progress-step">Dissecting Live IPsec Packets...</span>
+            </span>
+            <span id="live-progress-percent" class="text-primary font-bold">25%</span>
+        </div>
+        <div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
+            <div id="live-progress-bar" class="bg-gradient-to-r from-primary to-primary-container h-2 rounded-full transition-all duration-300 shadow-[0_0_8px_rgba(0,88,188,0.4)]" style="width: 25%;"></div>
+        </div>
+    </div>
+    <div id="live-status-message" class="hidden p-2.5 rounded-xl text-xs font-mono mb-2"></div>
     <div class="space-y-sm">
         <label class="flex items-center justify-between font-body-md text-body-md text-on-surface-variant cursor-pointer">
             <span>Auto-scroll feed</span>
@@ -511,11 +536,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showStatus(msg, isError) {
         if (!statusMsg) return;
-        statusMsg.className = 'p-2 rounded text-xs font-mono mb-2';
+        statusMsg.className = 'p-2.5 rounded-xl text-xs font-mono mb-2 border';
         if (isError) {
-            statusMsg.className += ' bg-error-container text-on-error-container';
+            statusMsg.className += ' bg-error/10 text-error border-error/30';
         } else {
-            statusMsg.className += ' bg-secondary-container text-on-secondary-container';
+            statusMsg.className += ' bg-primary/10 text-primary border-primary/20';
         }
         statusMsg.textContent = msg;
         statusMsg.classList.remove('hidden');
@@ -561,13 +586,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 4. Analyze Live Capture & Generate Report
+    // 4. Analyze Live Capture & Generate Report with Cupertino Progress Bar
     if (btnAnalyzeLive) {
         btnAnalyzeLive.addEventListener('click', function() {
+            var progressContainer = document.getElementById('live-progress-container');
+            var progressBar = document.getElementById('live-progress-bar');
+            var progressStep = document.getElementById('live-progress-step');
+            var progressPercent = document.getElementById('live-progress-percent');
+
             btnAnalyzeLive.disabled = true;
             btnAnalyzeLive.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">sync</span> Running Security Audit...';
-            showStatus('Running AI Classifier & Cryptographic Security Audit on live packet feed...', false);
             stopLivePolling();
+
+            if (statusMsg) statusMsg.classList.add('hidden');
+            if (progressContainer) progressContainer.classList.remove('hidden');
+
+            function setStage(stepText, percent) {
+                if (progressStep) progressStep.textContent = stepText;
+                if (progressPercent) progressPercent.textContent = percent + '%';
+                if (progressBar) progressBar.style.width = percent + '%';
+            }
+
+            setStage('Dissecting Live IPsec Packets & SPIs...', 25);
+
+            var timer1 = setTimeout(function() {
+                setStage('Running Random Forest AI & ETA Classifier...', 55);
+            }, 300);
+
+            var timer2 = setTimeout(function() {
+                setStage('Auditing NSA CNSA 2.0 Post-Quantum Posture...', 85);
+            }, 600);
 
             fetch(getApiUrl('/api/live/analyze'), {
                 method: 'POST'
@@ -577,18 +625,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 return r.json();
             })
             .then(function(data) {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                setStage('Compiling 7-Section Interactive Audit Report...', 100);
+
                 var rep = data.report || {};
                 var repId = rep.report_id || 'REP-LATEST';
-                showStatus('Live audit report generated! Redirecting to report viewer...', false);
                 if (systemStatusText) systemStatusText.textContent = 'AUDIT COMPLETED';
 
                 // Automatically redirect to the full 7-section interactive report viewer
                 var targetViewerUrl = 'report_viewer.html?id=' + encodeURIComponent(repId);
                 setTimeout(function() {
                     window.location.href = targetViewerUrl;
-                }, 500);
+                }, 400);
             })
             .catch(function(err) {
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                if (progressContainer) progressContainer.classList.add('hidden');
                 btnAnalyzeLive.disabled = false;
                 btnAnalyzeLive.innerHTML = '<span class="material-symbols-outlined text-[16px]">security_update_good</span> Analyze Live Feed & Generate Report';
                 showStatus(err.message || 'Error generating live analysis', true);
@@ -641,8 +695,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 var elLeak = document.getElementById('live-leak-count');
                 var elSpi = document.getElementById('live-active-spi');
 
-                if (elEsp) elEsp.textContent = (data.total_esp !== undefined ? data.total_esp : espCount).toLocaleString();
-                if (elIke) elIke.textContent = (data.total_ike !== undefined ? data.total_ike : ikeCount).toLocaleString();
+                var actualEsp = (data.esp_packets !== undefined) ? data.esp_packets : (data.total_esp !== undefined ? data.total_esp : espCount);
+                var actualIke = (data.ike_packets !== undefined) ? data.ike_packets : (data.total_ike !== undefined ? data.total_ike : ikeCount);
+                var totalCaptured = (data.total_packets !== undefined) ? data.total_packets : (actualEsp + actualIke);
+
+                if (elEsp) elEsp.textContent = actualEsp.toLocaleString();
+                if (elIke) elIke.textContent = actualIke.toLocaleString();
+
+                // Check user-configured packet limit
+                var limitSelect = document.getElementById('packet-limit-select');
+                var targetLimit = limitSelect ? parseInt(limitSelect.value) : 100;
+
+                if (targetLimit > 0 && totalCaptured >= targetLimit && data.running) {
+                    // Auto-stop capture when target limit is reached
+                    fetch(getApiUrl('/api/live/stop'), { method: 'POST' }).then(function() {
+                        stopLivePolling();
+                        if (systemStatusText) systemStatusText.textContent = 'LIMIT REACHED (' + targetLimit + ' PKTS)';
+                        showStatus('Target limit of ' + targetLimit + ' packets reached! Capture paused. Click "Analyze Live Feed" below to generate report.', false);
+                        if (btnAnalyzeLive) {
+                            btnAnalyzeLive.classList.add('animate-bounce');
+                            setTimeout(function() { btnAnalyzeLive.classList.remove('animate-bounce'); }, 2000);
+                        }
+                    });
+                }
                 if (elLeak) {
                     if (leakCount > 0) {
                         elLeak.textContent = leakCount + ' Leaks!';

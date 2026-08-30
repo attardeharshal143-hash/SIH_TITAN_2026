@@ -138,12 +138,15 @@
 
             <!-- 1. Forensic Engine & PQC Parameters -->
             <section id="sec-forensics" class="sec-card bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-6 shadow-xs">
-                <div class="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/20">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-outline-variant/20">
                     <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
                         <span class="material-symbols-outlined text-primary text-[20px]">security</span>
                         Forensic Inspection & Cryptography Thresholds
                     </h2>
-                    <span class="text-[11px] font-mono text-outline">CORE ENGINE v2.0</span>
+                    <button id="btn-load-precision-preset" type="button" class="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg text-[11px] font-bold font-mono inline-flex items-center gap-1 transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+                        Load Max-Precision Preset
+                    </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div>
@@ -157,22 +160,22 @@
                     <div>
                         <label class="block font-bold text-on-surface mb-1">AI ETA Classifier Heuristic</label>
                         <select id="sel-ai-model" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono text-on-surface">
+                            <option value="HYBRID" selected>Hybrid ML + Heuristic Tunnel Inspection (Max Precision)</option>
                             <option value="RF_100">Random Forest (100 Estimators, 98.5% Accuracy)</option>
                             <option value="ENTROPY_ONLY">Pure Shannon Entropy Decomposition</option>
-                            <option value="HYBRID">Hybrid ML + Heuristic Tunnel Inspection</option>
                         </select>
                     </div>
                     <div>
                         <label class="block font-bold text-on-surface mb-1">Shannon Entropy Leak Threshold</label>
-                        <input id="input-entropy-thresh" type="text" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 font-mono text-xs text-on-surface" value="7.80 bits/byte">
+                        <input id="input-entropy-thresh" type="text" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 font-mono text-xs text-on-surface" value="7.85 bits/byte">
                         <p class="text-outline text-[11px] mt-1">Payloads below this threshold are flagged for potential cleartext leaks.</p>
                     </div>
                     <div>
                         <label class="block font-bold text-on-surface mb-1">Frame Inspector Sample Limit</label>
                         <select id="sel-frame-limit" class="w-full bg-surface-container-low border border-outline-variant/40 rounded-xl px-3 py-2 text-xs font-mono text-on-surface">
-                            <option value="50">50 Frames (Optimal UI Rendering)</option>
+                            <option value="250" selected>250 Frames (Deep Audit - Maximum Output)</option>
                             <option value="100">100 Frames (Extended Sample)</option>
-                            <option value="250">250 Frames (Deep Audit)</option>
+                            <option value="50">50 Frames (Quick Sample)</option>
                         </select>
                     </div>
                 </div>
@@ -330,6 +333,22 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(function(err) {
             console.warn('[TITAN] Could not load backend settings, falling back to local storage:', err);
         });
+
+        var btnPreset = document.getElementById('btn-load-precision-preset');
+    if (btnPreset) {
+        btnPreset.addEventListener('click', function() {
+            if (elPqc) elPqc.value = 'CNSA_2';
+            if (elAi) elAi.value = 'HYBRID';
+            if (elEntropy) elEntropy.value = '7.85 bits/byte';
+            if (elFrames) elFrames.value = '250';
+            if (elFreq) elFreq.value = '800';
+
+            btnPreset.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> Max-Precision Loaded!';
+            setTimeout(function() {
+                btnPreset.innerHTML = '<span class="material-symbols-outlined text-[14px]">auto_fix_high</span> Load Max-Precision Preset';
+            }, 1800);
+        });
+    }
 
     // 2. Save settings to backend
     if (btnSaveAll) {
