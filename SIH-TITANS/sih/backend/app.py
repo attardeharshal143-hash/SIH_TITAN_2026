@@ -75,11 +75,19 @@ def index():
 def serve_page(filename):
     target = FRONTEND_DIR / filename
     if target.exists() and target.is_file():
-        return send_file(str(target))
+        resp = send_file(str(target))
+        # High-performance caching for images, scripts, fonts
+        if target.suffix in [".png", ".svg", ".ico", ".jpg", ".webp", ".woff2", ".js", ".css"]:
+            resp.headers["Cache-Control"] = "public, max-age=604800, immutable"
+        else:
+            resp.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return resp
     # Fallback to appending .html
     html_target = FRONTEND_DIR / f"{filename}.html"
     if html_target.exists() and html_target.is_file():
-        return send_file(str(html_target))
+        resp = send_file(str(html_target))
+        resp.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return resp
     return jsonify({"error": f"Resource {filename} not found"}), 404
 
 # ----------------------------------------------------
