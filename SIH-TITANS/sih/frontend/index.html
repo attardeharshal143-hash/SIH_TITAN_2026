@@ -3,7 +3,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
 <meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" name="viewport">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
         <link rel="icon" type="image/png" href="logo.png?v=3">
     <link rel="shortcut icon" href="logo.png?v=3">
     <link rel="apple-touch-icon" href="logo.png?v=3">
@@ -177,6 +177,13 @@
   }
 </script>
 <style>
+        html, body {
+            overflow-x: hidden !important;
+            max-width: 100vw !important;
+            width: 100% !important;
+            touch-action: pan-y !important;
+            -webkit-text-size-adjust: 100% !important;
+        }
         body { scroll-behavior: smooth; }
         .vertical-nav-item { opacity: 0.4; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; text-decoration: none !important; }
         .vertical-nav-item:hover { opacity: 0.85; }
@@ -320,7 +327,7 @@
 </div>
 
 
-<main class="pb-24 md:pb-8">
+<main class="pb-28 md:pb-8 w-full max-w-full overflow-x-hidden">
 <!-- Vertical Navigation (Pagani Inspired) -->
 <nav class="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-10 pointer-events-auto border-l-[1px] border-outline-variant/20 py-8">
 <a class="vertical-nav-item active flex items-center group -ml-[1px]" href="#hero">
@@ -345,11 +352,11 @@
 </a>
 </nav>
 <!-- 01: Hero Section -->
-<section class="relative min-h-[88vh] sm:min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-hero-padding pt-24 sm:pt-28 pb-12 sm:pb-16" id="hero">
+<section class="relative min-h-[88vh] sm:min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-hero-padding pt-24 sm:pt-28 pb-12 sm:pb-16" id="hero" style="max-width: 100vw; overflow: hidden;">
 <div class="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-multiply" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDNTiYRM4fqwHbKLrf1hJJGkJVKW-GOAXBc5XOBMKopnOZabQ7CLDG7W1hfUv_vKj-SDzIRIE-06NBW4CzBt_iLWZQMwnrkt8RI0HgLklaigpuxhnkGUAb9xx_5G-ybG-qN2AiN9dIe7oQhetzJhZ0uHAX5bqCsboATdBd6b0xbTgGMuAEU5yB-6GQ20qhBcyz9KSVaQZ7WXl-OSpfyH80-MhIeTPPKWSQ7g95T-sA2fWrCaHzx2vvg')" data-stitch-orig-opacity="0.4"></div>
 <div class="absolute inset-0 bg-gradient-to-b from-surface/60 via-surface/90 to-surface z-0"></div>
 <!-- Glowing Cyber Aurora Orb -->
-<div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-primary/10 rounded-full blur-[90px] pointer-events-none z-0 animate-pulse" style="animation-duration: 6s;"></div>
+<div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 sm:w-[450px] md:w-[550px] h-48 sm:h-[300px] md:h-[350px] max-w-full overflow-hidden bg-primary/10 rounded-full blur-[90px] pointer-events-none z-0 animate-pulse" style="animation-duration: 6s;"></div>
 <!-- Interactive Cyber Mesh Canvas (60FPS Lightweight Engine) -->
 <canvas id="titan-mesh-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-1 opacity-70"></canvas>
 <div class="relative z-10 text-center max-w-5xl mx-auto flex flex-col items-center mt-12">
