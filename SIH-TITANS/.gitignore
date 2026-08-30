@@ -1,0 +1,25 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*.class
+
+# Virtual environments & Secrets
+venv/
+env/
+.env
+.env.local
+.venv
+
+# Runtime artifacts & Uploads
+sih/uploads/*
+!sih/uploads/.gitkeep
+sih/reports/*.json
+sih/reports/*.pdf
+!sih/reports/.gitkeep
+*.log
+
+# OS & IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
