@@ -155,6 +155,13 @@ def update_settings():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
+@app.route("/api/compliance/pdf", methods=["GET"])
+def download_compliance_pdf():
+    target = REPORTS_DIR / "TITAN_SIH_Problem_Statement_Compliance_Report.pdf"
+    if target.exists():
+        return send_file(target, as_attachment=True, download_name="TITAN_SIH_Problem_Statement_Compliance_Report.pdf", mimetype="application/pdf")
+    return jsonify({"error": "Compliance report PDF not found"}), 404
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({

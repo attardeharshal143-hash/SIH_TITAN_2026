@@ -1,21 +1,21 @@
 {
-  "report_id": "REP-20260829184604-bf293b",
+  "report_id": "REP-20260830075521-67cfee",
   "report_type": "Enterprise IPsec Security Audit & Compliance Report",
-  "report_name": "Audit Analysis - Live_Capture_Default.pcap",
-  "pcap_file": "Live_Capture_Default.pcap",
-  "generated_at": "2026-08-29T18:46:04.920308Z",
-  "generated_date_str": "Aug 29, 2026, 18:46 UTC",
+  "report_name": "Audit Analysis - Live_Capture_Wi-Fi.pcap",
+  "pcap_file": "Live_Capture_Wi-Fi.pcap",
+  "generated_at": "2026-08-30T07:55:21.682085Z",
+  "generated_date_str": "Aug 30, 2026, 07:55 UTC",
   "status": "Completed",
   "executive_summary": {
     "security_grade": "A+",
     "compliance_status": "COMPLIANT (Strong IPsec Security Posture)",
     "risk_score": 10,
     "risk_level": "LOW",
-    "summary_text": "Traffic trace Live_Capture_Default.pcap was evaluated by the TITAN Inspection Engine. Security posture rated Grade A+ with a normalized risk index of 10/100."
+    "summary_text": "Traffic trace Live_Capture_Wi-Fi.pcap was evaluated by the TITAN Inspection Engine. Security posture rated Grade A+ with a normalized risk index of 10/100."
   },
   "traffic_summary": {
-    "packets_analyzed": 1,
-    "esp_packets": 1,
+    "packets_analyzed": 104,
+    "esp_packets": 104,
     "ah_packets": 0,
     "ike_candidates": 0,
     "tcp_packets": 0,
@@ -28,9 +28,10 @@
     "authentication_only_ah": false,
     "ike_negotiation_captured": false,
     "distinct_spis": [
-      "0xc743e05b"
+      "0xc743e05b",
+      "0xcb68f974"
     ],
-    "spi_count": 1
+    "spi_count": 2
   },
   "leakage_assessment": {
     "cleartext_packets": 0,
@@ -107,14 +108,14 @@
       }
     ],
     "siem_event": {
-      "event_timestamp": "2026-08-29T18:46:04.920522Z",
+      "event_timestamp": "2026-08-30T07:55:21.682686Z",
       "vendor": "TITAN Security Intelligence",
       "product": "IPsec VPN Analyzer",
       "event_type": "AUDIT_TELEMETRY",
       "security_grade": "A+",
       "risk_score": 10,
-      "total_packets": 1,
-      "esp_packets": 1,
+      "total_packets": 104,
+      "esp_packets": 104,
       "leakage_packets": 0,
       "mitre_technique_ids": [
         "M1037"
@@ -143,14 +144,14 @@
     }
   ],
   "siem_event": {
-    "event_timestamp": "2026-08-29T18:46:04.920522Z",
+    "event_timestamp": "2026-08-30T07:55:21.682686Z",
     "vendor": "TITAN Security Intelligence",
     "product": "IPsec VPN Analyzer",
     "event_type": "AUDIT_TELEMETRY",
     "security_grade": "A+",
     "risk_score": 10,
-    "total_packets": 1,
-    "esp_packets": 1,
+    "total_packets": 104,
+    "esp_packets": 104,
     "leakage_packets": 0,
     "mitre_technique_ids": [
       "M1037"
@@ -160,9 +161,11 @@
   },
   "endpoints": {
     "source_ips": [
-      "10.10.10.1"
+      "10.10.10.1",
+      "10.10.10.2"
     ],
     "destination_ips": [
+      "10.10.10.1",
       "10.10.10.2"
     ]
   },
@@ -171,8 +174,8 @@
   ],
   "ml_analysis": {
     "model": "Random Forest Classifier",
-    "total_analyzed": 1,
-    "predicted_esp_packets": 1,
+    "total_analyzed": 104,
+    "predicted_esp_packets": 104,
     "predicted_non_esp_packets": 0,
     "average_confidence": 100.0
   },
@@ -181,12 +184,12 @@
     "risk_score": 10,
     "risk_level": "LOW",
     "findings": [
-      "ESP Payload Encryption Verified: 1 encrypted frames (100.0% of capture).",
+      "ESP Payload Encryption Verified: 104 encrypted frames (100.0% of capture).",
       "Full Encapsulation: 100% of captured traffic is encapsulated within secure IPsec tunnel.",
       "Established Tunnel Trace: IKE initial negotiation phase was completed prior to packet capture.",
       "Zero Cleartext Leakage: No plaintext transport protocols were observed bypassing the VPN tunnel.",
       "MTU Headroom Optimal: Average packet length is 170 bytes (Max: 170 bytes), avoiding fragmentation.",
-      "Anti-Replay Protection: Sequence tracking verified across 1 active Security Associations (SAs)."
+      "Anti-Replay Protection: Sequence tracking verified across 2 active Security Associations (SAs)."
     ],
     "remediations": [
       "Maintain current cryptographic parameters and schedule regular re-keying intervals (e.g. every 8-24 hours)."
