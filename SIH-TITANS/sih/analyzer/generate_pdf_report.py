@@ -1,4 +1,4 @@
-﻿import json
+import json
 import sys
 from pathlib import Path
 from fpdf import FPDF
@@ -34,6 +34,28 @@ def create_pdf_report(report_data, output_pdf_path):
     pdf.set_auto_page_break(auto=True, margin=14)
     pdf.add_page()
 
+    sec = report_data.get("security_assessment", {})
+    crypto = report_data.get("cryptographic_analysis", {})
+    adv = report_data.get("advanced_security_audit", {})
+    pqc = report_data.get("pqc_readiness", {})
+    c_infer = report_data.get("cipher_mode_inference", {})
+    summary = report_data.get("traffic_summary", {})
+    eta = report_data.get("encrypted_traffic_analysis", {})
+    mitre = report_data.get("mitre_attack_mapping", [])
+    anti_replay = report_data.get("anti_replay_audit", {})
+    remediations = report_data.get("remediation_scripts", {})
+
+    total_pkts = summary.get("packets_analyzed", 0)
+    esp_pkts = summary.get("esp_packets", 0)
+    ah_pkts = summary.get("ah_packets", 0)
+    ike_pkts = summary.get("ike_candidates", 0)
+    tcp_pkts = summary.get("tcp_packets", 0)
+    udp_pkts = summary.get("udp_packets", 0)
+    icmp_pkts = summary.get("icmp_packets", 0)
+    dns_pkts = summary.get("dns_packets", 0)
+
+    is_ipsec = (esp_pkts > 0 or ah_pkts > 0 or ike_pkts > 0)
+
     # Meta Info Box
     pdf.set_fill_color(244, 247, 252)
     pdf.rect(10, 20, 190, 24, "F")
@@ -57,12 +79,10 @@ def create_pdf_report(report_data, output_pdf_path):
     pdf.cell(0, 5.5, "1. EXECUTIVE SECURITY SUMMARY & POSTURE GRADE", ln=True)
     pdf.ln(1)
 
-    sec = report_data.get("security_assessment", {})
     grade = sec.get("security_grade", "A+")
     risk_score = sec.get("risk_score", 10)
     risk_level = sec.get("risk_level", "LOW")
 
-    # Grade Card
     if risk_level == "LOW":
         pdf.set_fill_color(235, 248, 235)
         pdf.set_draw_color(100, 180, 100)
@@ -86,53 +106,73 @@ def create_pdf_report(report_data, output_pdf_path):
     
     pdf.set_font("Helvetica", "B", 9.5)
     pdf.set_text_color(40, 50, 70)
-    pdf.cell(75, 9, f"Normalized Risk Index: {risk_score} / 100 ({risk_level} RISK)", ln=False)
+    pdf.cell(75, 9, f"Risk Index: {risk_score} / 100 ({risk_level})", ln=False)
     pdf.set_font("Helvetica", "I", 8.5)
-    pdf.cell(63, 9, f"Status: Verified by TITAN Engine", ln=True, align="R")
+    pdf.cell(63, 9, f"Traffic: {'IPsec Encapsulated' if is_ipsec else 'Standard Non-VPN'}", ln=True, align="R")
 
     pdf.ln(5)
 
-    # 2. Cryptographic Security, IKE PSK & PQC Quantum Readiness
-    crypto = report_data.get("cryptographic_analysis", {})
-    adv = report_data.get("advanced_security_audit", {})
-    pqc = report_data.get("pqc_readiness", {})
-    ike_audit = adv.get("ike_psk_audit", {})
-
+    # 2. Cryptographic Security & Posture
     pdf.set_font("Helvetica", "B", 10.5)
     pdf.set_text_color(15, 30, 65)
-    pdf.cell(0, 5.5, "2. CRYPTOGRAPHIC INTEGRITY & POST-QUANTUM (PQC) READINESS", ln=True)
+    pdf.cell(0, 5.5, "2. CRYPTOGRAPHIC INTEGRITY & POST-QUANTUM (PQC) POSTURE AUDIT", ln=True)
 
     pdf.set_font("Helvetica", "", 8.5)
     pdf.set_text_color(40, 40, 40)
     spis = crypto.get("distinct_spis", [])
-    spi_text = ", ".join(spis) if spis else "Active Security Associations (Inbound/Outbound)"
+    spi_text = ", ".join(spis) if spis else ("Active SPIs" if is_ipsec else "None (Non-IPsec)")
+    
+    op_mode = c_infer.get("operating_mode", "Tunnel Mode" if is_ipsec else "N/A (Non-VPN)")
+    cipher_name = c_infer.get("inferred_cipher", "AES-GCM-256 AEAD" if is_ipsec else "Plaintext HTTP/TCP")
+    icv_tag = c_infer.get("integrity_algorithm", "128-bit GHASH GMAC" if is_ipsec else "TCP/IP Checksum")
+
+    pdf.set_x(10)
+    pdf.cell(95, 4.5, f"- Operating Mode: {sanitize_pdf_str(op_mode[:45])}", ln=False)
+    pdf.cell(95, 4.5, f"- Inferred Cipher: {sanitize_pdf_str(cipher_name[:45])}", ln=True)
     
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Payload Encryption: {'Enforced (ESP Protocol 50)' if crypto.get('encryption_enforced') else 'NOT ENFORCED'}", ln=False)
-    pdf.cell(95, 4.5, f"- Post-Quantum Readiness: {pqc.get('pqc_score', 85)}% ({pqc.get('pqc_status', 'QUANTUM-RESISTANT')})", ln=True)
+    pdf.cell(95, 4.5, f"- Payload Encryption: {'Enforced (ESP Protocol 50)' if esp_pkts > 0 else 'None (Unencrypted / Plaintext)'}", ln=False)
+    pdf.cell(95, 4.5, f"- PQC Readiness: {pqc.get('pqc_score', 0)}% ({pqc.get('pqc_status', 'N/A')})", ln=True)
+    
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Authentication Header: {'Present (AH Protocol 51)' if crypto.get('authentication_only_ah') else 'None (Pure ESP Tunnel)'}", ln=False)
-    pdf.cell(95, 4.5, f"- IKE PSK Exposure Risk: {sanitize_pdf_str(ike_audit.get('psk_vulnerability_risk', 'LOW'))}", ln=True)
+    pdf.cell(95, 4.5, f"- Auth / ICV Tag: {sanitize_pdf_str(icv_tag[:45])}", ln=False)
+    pdf.cell(95, 4.5, f"- Anti-Replay: {sanitize_pdf_str(anti_replay.get('sequence_integrity', 'N/A')[:45])}", ln=True)
+
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Active SPIs: {sanitize_pdf_str(spi_text[:40])}", ln=False)
-    pdf.cell(95, 4.5, f"- CNSA 2.0 Compliance: {'COMPLIANT' if pqc.get('cnsa_2_0_compliant') else 'UPGRADE REQUIRED'}", ln=True)
+    pdf.cell(190, 4.5, f"- Active SPIs: {sanitize_pdf_str(spi_text[:80])}", ln=True)
 
-    pdf.ln(3)
+    # Render Per-SA Partitioned Multi-Tunnel Table in PDF if multiple SAs
+    sas = report_data.get("security_associations", [])
+    if len(sas) > 1:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_fill_color(230, 238, 248)
+        pdf.set_text_color(20, 35, 60)
+        pdf.set_x(10)
+        pdf.cell(26, 4.5, "SPI (SA)", border=1, fill=True)
+        pdf.cell(44, 4.5, "Endpoints", border=1, fill=True)
+        pdf.cell(42, 4.5, "Inferred Cipher", border=1, fill=True)
+        pdf.cell(20, 4.5, "PQC Grade", border=1, fill=True, align="C")
+        pdf.cell(58, 4.5, "ETA Application Classification", border=1, fill=True, ln=True)
 
-    # 3. Traffic Telemetry & Protocol Distribution Matrix
+        for sa in sas:
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.set_text_color(40, 40, 40)
+            pdf.set_x(10)
+            pdf.cell(26, 4, sanitize_pdf_str(sa.get("spi", "")[:12]), border=1)
+            pdf.cell(44, 4, sanitize_pdf_str(sa.get("endpoints", "")[:24]), border=1)
+            pdf.cell(42, 4, sanitize_pdf_str(sa.get("inferred_cipher", "")[:22]), border=1)
+            pdf.cell(20, 4, f"{sa.get('pqc_score', 0)}%", border=1, align="C")
+            eta_name = sa.get("eta_profile", {}).get("application_category", "Standard Flow")
+            pdf.cell(58, 4, sanitize_pdf_str(eta_name[:34]), border=1, ln=True)
+        pdf.ln(2)
+    else:
+        pdf.ln(3)
+
+    # 3. Traffic Telemetry & Protocol Matrix
     pdf.set_font("Helvetica", "B", 10.5)
     pdf.set_text_color(15, 30, 65)
     pdf.cell(0, 5.5, "3. TRAFFIC TELEMETRY & PROTOCOL DISTRIBUTION MATRIX", ln=True)
-
-    summary = report_data.get("traffic_summary", {})
-    total_pkts = summary.get("packets_analyzed", 0)
-    esp_pkts = summary.get("esp_packets", 0)
-    ah_pkts = summary.get("ah_packets", 0)
-    ike_pkts = summary.get("ike_candidates", 0)
-    tcp_pkts = summary.get("tcp_packets", 0)
-    udp_pkts = summary.get("udp_packets", 0)
-    icmp_pkts = summary.get("icmp_packets", 0)
-    dns_pkts = summary.get("dns_packets", 0)
 
     pdf.set_font("Helvetica", "B", 8.5)
     pdf.set_fill_color(230, 238, 248)
@@ -173,121 +213,94 @@ def create_pdf_report(report_data, output_pdf_path):
 
     pdf.ln(4)
 
-    # 4. Encrypted Traffic Analysis (ETA) & Application Fingerprinting
-    eta = report_data.get("encrypted_traffic_analysis", {})
+    # 4. ETA & Application Fingerprinting
     pdf.set_font("Helvetica", "B", 10.5)
     pdf.set_text_color(15, 30, 65)
-    pdf.cell(0, 5.5, "4. ENCRYPTED TRAFFIC ANALYSIS (ETA) & APPLICATION FINGERPRINTING", ln=True)
+    pdf.cell(0, 5.5, "4. APPLICATION FINGERPRINTING & ENCRYPTED TRAFFIC ANALYSIS", ln=True)
 
     pdf.set_font("Helvetica", "", 8.5)
     pdf.set_text_color(40, 40, 40)
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Inferred Application: {sanitize_pdf_str(eta.get('application_category', 'Encrypted Flow'))}", ln=False)
-    pdf.cell(95, 4.5, f"- ETA Confidence Score: {eta.get('eta_confidence', 94.5)}%", ln=True)
+    pdf.cell(95, 4.5, f"- Inferred Application: {sanitize_pdf_str(eta.get('application_category', 'Standard Network Flow'))}", ln=False)
+    pdf.cell(95, 4.5, f"- Identification Confidence: {eta.get('eta_confidence', 95.0)}%", ln=True)
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Traffic Pattern: {sanitize_pdf_str(eta.get('traffic_pattern', 'Encapsulated Flow'))}", ln=False)
+    pdf.cell(95, 4.5, f"- Traffic Pattern: {sanitize_pdf_str(eta.get('traffic_pattern', 'Standard Flow'))}", ln=False)
     pdf.cell(95, 4.5, f"- Burstiness Index: {eta.get('burstiness_index', 0.0)}", ln=True)
     pdf.set_x(10)
-    pdf.multi_cell(190, 4.5, f"Behavioral Heuristic: {sanitize_pdf_str(eta.get('inferred_behavior', ''))}")
+    pdf.multi_cell(190, 4.5, f"Analysis: {sanitize_pdf_str(eta.get('inferred_behavior', ''))}")
 
     pdf.ln(3)
 
     # 5. MITRE ATT&CK Framework Mapping
-    mitre = report_data.get("mitre_attack_mapping", [])
     pdf.set_font("Helvetica", "B", 10.5)
     pdf.set_text_color(15, 30, 65)
     pdf.cell(0, 5.5, "5. MITRE ATT&CK ENTERPRISE FRAMEWORK MAPPING", ln=True)
 
-    pdf.set_font("Helvetica", "B", 8)
-    pdf.set_fill_color(240, 243, 248)
-    pdf.set_draw_color(200, 215, 230)
-    pdf.set_text_color(30, 45, 70)
-    pdf.set_x(10)
-    pdf.cell(24, 5, "Technique ID", border=1, fill=True)
-    pdf.cell(56, 5, "Technique Name", border=1, fill=True)
-    pdf.cell(40, 5, "Tactic / Domain", border=1, fill=True)
-    pdf.cell(20, 5, "Severity", border=1, fill=True, align="C")
-    pdf.cell(50, 5, "Audit Finding", border=1, fill=True, ln=True)
-
-    pdf.set_font("Helvetica", "", 8)
-    pdf.set_text_color(40, 40, 40)
-    for m in mitre[:4]:
+    if not mitre:
+        pdf.set_font("Helvetica", "I", 8.5)
+        pdf.set_text_color(60, 60, 60)
         pdf.set_x(10)
-        pdf.cell(24, 4.5, sanitize_pdf_str(m.get("technique_id", "-")), border=1)
-        pdf.cell(56, 4.5, sanitize_pdf_str(m.get("technique_name", "-")[:28]), border=1)
-        pdf.cell(40, 4.5, sanitize_pdf_str(m.get("tactic", "-")[:20]), border=1)
-        
-        sev = m.get("severity", "INFO")
-        pdf.set_font("Helvetica", "B", 7.5)
-        if sev == "HIGH":
-            pdf.set_text_color(180, 20, 20)
-        elif sev == "MEDIUM":
-            pdf.set_text_color(180, 100, 10)
-        else:
-            pdf.set_text_color(20, 120, 40)
-        pdf.cell(20, 4.5, sev, border=1, align="C")
-
-        pdf.set_font("Helvetica", "", 7.5)
-        pdf.set_text_color(50, 50, 50)
-        pdf.cell(50, 4.5, sanitize_pdf_str(m.get("finding_ref", "-")[:32]), border=1, ln=True)
-
-    pdf.ln(4)
-
-    # 6. Deep Security Findings
-    pdf.set_font("Helvetica", "B", 10.5)
-    pdf.set_text_color(15, 30, 65)
-    pdf.cell(0, 5.5, "6. DEEP SECURITY AUDIT FINDINGS", ln=True)
-
-    findings = sec.get("findings", [])
-    pdf.set_font("Helvetica", "", 8.5)
-    pdf.set_text_color(30, 30, 30)
-    if findings:
-        for idx, item in enumerate(findings, 1):
-            clean_item = sanitize_pdf_str(item)
-            pdf.set_x(10)
-            pdf.cell(7, 4.5, f"[{idx}]", ln=0)
-            pdf.set_x(17)
-            pdf.multi_cell(183, 4.5, clean_item)
-            pdf.ln(0.5)
+        pdf.cell(0, 5, "No adversary tactics or active tunnel exfiltration techniques detected in this capture stream.", ln=True)
     else:
-        pdf.set_x(10)
-        pdf.cell(0, 4.5, "Zero vulnerabilities or anomalies detected in capture stream.", ln=True)
+        for m in mitre:
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.set_text_color(180, 20, 20)
+            pdf.set_x(10)
+            pdf.cell(0, 4.5, f"[{m.get('technique_id')}] {sanitize_pdf_str(m.get('technique_name'))} ({m.get('tactic')}) - Severity: {m.get('severity')}", ln=True)
+            pdf.set_font("Helvetica", "", 8)
+            pdf.set_text_color(40, 40, 40)
+            pdf.set_x(14)
+            pdf.multi_cell(186, 4, f"Observation: {sanitize_pdf_str(m.get('finding_ref', ''))} | Mitigation: {sanitize_pdf_str(m.get('mitigation', ''))}")
 
     pdf.ln(3)
 
-    # 7. Actionable Hardening Roadmap
+    # 6. Deep Forensic Findings & Remediations
     pdf.set_font("Helvetica", "B", 10.5)
     pdf.set_text_color(15, 30, 65)
-    pdf.cell(0, 5.5, "7. ACTIONABLE HARDENING ROADMAP & SIEM CONFIGURATION", ln=True)
+    pdf.cell(0, 5.5, "6. FORENSIC FINDINGS & ACTIONABLE REMEDIATIONS", ln=True)
 
-    remediations = sec.get("remediations", [])
-    pdf.set_font("Helvetica", "", 8.5)
-    pdf.set_text_color(30, 40, 60)
-    if remediations:
-        for idx, rem in enumerate(remediations, 1):
-            clean_rem = sanitize_pdf_str(rem)
-            pdf.set_x(10)
-            pdf.set_font("Helvetica", "B", 8.5)
-            pdf.cell(16, 4.5, f"Step {idx}: ", ln=0)
-            pdf.set_font("Helvetica", "", 8.5)
-            pdf.set_x(26)
-            pdf.multi_cell(174, 4.5, clean_rem)
-            pdf.ln(0.5)
-    else:
+    findings = sec.get("findings", [])
+    remed_guidance = sec.get("remediations", [])
+
+    pdf.set_font("Helvetica", "B", 8.5)
+    pdf.set_text_color(20, 35, 60)
+    pdf.set_x(10)
+    pdf.cell(0, 4.5, "Audited Observations:", ln=True)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(40, 40, 40)
+    for f in findings:
+        pdf.set_x(14)
+        pdf.multi_cell(186, 4, f"- {sanitize_pdf_str(f)}")
+
+    if remed_guidance:
+        pdf.ln(1)
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.set_text_color(20, 35, 60)
         pdf.set_x(10)
-        pdf.cell(0, 4.5, "Infrastructure adheres to standard security baselines. No immediate remediation required.", ln=True)
+        pdf.cell(0, 4.5, "Recommended Actions:", ln=True)
+        pdf.set_font("Helvetica", "", 8)
+        pdf.set_text_color(40, 40, 40)
+        for r in remed_guidance:
+            pdf.set_x(14)
+            pdf.multi_cell(186, 4, f"- {sanitize_pdf_str(r)}")
 
-    # Output
-    output_pdf_path = Path(output_pdf_path)
-    output_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    # 7. Automated Remediation Configuration Snippet
+    if remediations and (remediations.get("strongswan_swanctl_conf") or remediations.get("cisco_ios_xe_cli")):
+        pdf.ln(3)
+        pdf.set_font("Helvetica", "B", 10.5)
+        pdf.set_text_color(15, 30, 65)
+        pdf.cell(0, 5.5, "7. HARDENED CONFIGURATION REMEDIATION (STRONGSWAN / CISCO)", ln=True)
+        
+        pdf.set_font("Courier", "", 7.5)
+        pdf.set_fill_color(240, 244, 250)
+        pdf.set_text_color(25, 45, 75)
+        
+        conf_snippet = remediations.get("strongswan_swanctl_conf", "")
+        if conf_snippet:
+            lines = conf_snippet.split("\n")[:18]
+            clean_snippet = "\n".join(lines)
+            pdf.set_x(10)
+            pdf.multi_cell(190, 3.5, sanitize_pdf_str(clean_snippet), fill=True)
+
     pdf.output(str(output_pdf_path))
-    return str(output_pdf_path)
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        json_in = Path(sys.argv[1])
-        out_pdf = Path(sys.argv[2]) if len(sys.argv) > 2 else json_in.with_suffix(".pdf")
-        with open(json_in, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        create_pdf_report(data, out_pdf)
-        print(f"Generated PDF: {out_pdf}")
+    return output_pdf_path

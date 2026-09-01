@@ -1,4 +1,4 @@
-﻿import json
+import json
 import sys
 import uuid
 from datetime import datetime
@@ -11,13 +11,17 @@ if str(BASE_DIR) not in sys.path:
 
 from analyzer.eta_fingerprint import perform_encrypted_traffic_analysis
 from analyzer.advanced_security_auditor import perform_advanced_security_audit
+from analyzer.cipher_mode_infer import infer_ipsec_cipher_and_mode
+from analyzer.remediation_generator import generate_remediation_scripts
+from analyzer.tunnel_partitioner import partition_and_audit_tunnels
+from analyzer.ike_dissector import extract_all_ike_negotiations
 
-def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap", reports_dir=None):
+def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap", reports_dir=None, raw_packets=None, ike_map=None):
     now = datetime.utcnow()
     report_id = f"REP-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
     
-    unique_src_ips = sorted(list(set(x["src_ip"] for x in features if x.get("src_ip"))))
-    unique_dst_ips = sorted(list(set(x["dst_ip"] for x in features if x.get("dst_ip"))))
+    unique_src_ips = sorted(list(set(x["ip_src"] for x in features if x.get("ip_src"))))
+    unique_dst_ips = sorted(list(set(x["ip_dst"] for x in features if x.get("ip_dst"))))
     unique_protocols = sorted(list(set(x["transport_protocol"] for x in features if x.get("transport_protocol"))))
 
     esp_count = sum(1 for x in features if x.get("esp"))
@@ -28,9 +32,36 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     icmp_count = sum(1 for x in features if x.get("icmp"))
     dns_count = sum(1 for x in features if x.get("dns"))
 
-    # Run ETA Fingerprinting and Advanced Cybersecurity Audits
+    # 1. Global ETA Fingerprinting
     eta_result = perform_encrypted_traffic_analysis(features)
-    adv_audit = perform_advanced_security_audit(features, assessment)
+    
+    # 2. Advanced Security Audit (IKE SA Dissection, PQC, Downgrade detection)
+    adv_audit = perform_advanced_security_audit(features, assessment, raw_packets=raw_packets)
+    
+    # 3. Global Cipher & Mode Inference (IKE-first precedence)
+    first_ike = ike_map.get("global_first") if ike_map else None
+    cipher_inference = infer_ipsec_cipher_and_mode(features, ike_details=first_ike)
+
+    # 4. Per-Tunnel / Per-SA Partitioned Analysis
+    sa_audits = partition_and_audit_tunnels(features, ike_map)
+
+    # 5. Worst-Case Aggregation: If any SA is weak or has crypto downgrade, enforce strict non-compliance
+    sec_grade = assessment.get("security_grade", "A")
+    comp_status = assessment.get("compliance_status", "COMPLIANT")
+    r_score = assessment.get("risk_score", 10)
+    r_level = assessment.get("risk_level", "LOW")
+
+    if sa_audits:
+        weak_sas = [sa for sa in sa_audits if sa.get("pqc_score") == 0 or "Legacy" in str(sa.get("inferred_cipher", "")) or "DES" in str(sa.get("inferred_cipher", "")) or "VULNERABLE" in str(sa.get("pqc_status", ""))]
+        if weak_sas:
+            weak_sa = weak_sas[0]
+            cipher_inference["inferred_cipher"] = weak_sa.get("inferred_cipher")
+            adv_audit["pqc_readiness"]["pqc_score"] = 0
+            adv_audit["pqc_readiness"]["pqc_status"] = f"QUANTUM-VULNERABLE (Downgrade in SA {weak_sa.get('spi', '')})"
+            sec_grade = "C" if r_score <= 75 else "F"
+            comp_status = f"NON-COMPLIANT (Cryptographic Downgrade in SA {weak_sa.get('spi', '')})"
+            r_score = max(r_score, 75)
+            r_level = "HIGH"
 
     report = {
         "report_id": report_id,
@@ -41,11 +72,11 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
         "generated_date_str": now.strftime("%b %d, %Y, %H:%M UTC"),
         "status": "Completed",
         "executive_summary": {
-            "security_grade": assessment.get("security_grade", "A"),
-            "compliance_status": assessment.get("compliance_status", "COMPLIANT"),
-            "risk_score": assessment.get("risk_score", 10),
-            "risk_level": assessment.get("risk_level", "LOW"),
-            "summary_text": f"Traffic trace {pcap_name} was evaluated by the TITAN Inspection Engine. Security posture rated Grade {assessment.get('security_grade', 'A')} with a normalized risk index of {assessment.get('risk_score', 10)}/100."
+            "security_grade": sec_grade,
+            "compliance_status": comp_status,
+            "risk_score": r_score,
+            "risk_level": r_level,
+            "summary_text": f"Traffic trace {pcap_name} was evaluated by the TITAN Inspection Engine. Security posture rated Grade {sec_grade} with a normalized risk index of {r_score}/100."
         },
         "traffic_summary": {
             "packets_analyzed": len(features),
@@ -55,7 +86,8 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             "tcp_packets": tcp_count,
             "udp_packets": udp_count,
             "icmp_packets": icmp_count,
-            "dns_packets": dns_count
+            "dns_packets": dns_count,
+            "active_security_associations": len(sa_audits)
         },
         "cryptographic_analysis": assessment.get("cryptographic_posture", {}),
         "leakage_assessment": assessment.get("leakage_assessment", {}),
@@ -63,9 +95,11 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
         "mtu_fragmentation_audit": assessment.get("mtu_fragmentation_audit", {}),
         "encrypted_traffic_analysis": eta_result,
         "advanced_security_audit": adv_audit,
+        "cipher_mode_inference": cipher_inference,
         "pqc_readiness": adv_audit.get("pqc_readiness", {}),
         "mitre_attack_mapping": adv_audit.get("mitre_attack_mapping", []),
         "siem_event": adv_audit.get("siem_event", {}),
+        "security_associations": sa_audits,
         "endpoints": {
             "source_ips": unique_src_ips,
             "destination_ips": unique_dst_ips
@@ -73,14 +107,17 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
         "protocols": unique_protocols,
         "ml_analysis": ml_result,
         "security_assessment": {
-            "security_grade": assessment.get("security_grade", "A"),
-            "risk_score": assessment.get("risk_score", 0),
-            "risk_level": assessment.get("risk_level", "UNKNOWN"),
+            "security_grade": sec_grade,
+            "risk_score": r_score,
+            "risk_level": r_level,
             "findings": assessment.get("findings", []),
             "remediations": assessment.get("remediations", []),
             "remediation_guidance": assessment.get("remediations", [])
         }
     }
+
+    # Generate automated hardening remediation scripts
+    report["remediation_scripts"] = generate_remediation_scripts(report)
 
     if reports_dir is not None:
         reports_dir = Path(reports_dir)
@@ -90,26 +127,3 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             json.dump(report, f, indent=2)
 
     return report
-
-if __name__ == "__main__":
-    feat_file = BASE_DIR / "dataset" / "ipsec_features.json"
-    sec_file = BASE_DIR / "dataset" / "security_assessment.json"
-    rep_dir = BASE_DIR / "reports"
-
-    if not feat_file.exists() or not sec_file.exists():
-        print("Required intermediate files missing.")
-        sys.exit(1)
-
-    with open(feat_file, "r", encoding="utf-8") as f:
-        features = json.load(f)
-
-    with open(sec_file, "r", encoding="utf-8") as f:
-        assessment = json.load(f)
-
-    from analyzer.ml_predict import run_ml_inference
-    ml_result = run_ml_inference(features)
-
-    report = build_full_report(features, assessment, ml_result, reports_dir=rep_dir)
-    print("Report generated successfully:")
-    print(f"Report ID: {report['report_id']}")
-    print(f"Security Grade: {report['executive_summary']['security_grade']}")

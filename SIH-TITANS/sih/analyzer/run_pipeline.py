@@ -29,19 +29,33 @@ def run_complete_pipeline(pcap_path, reports_dir=None, dataset_dir=None):
         if not is_valid:
             return False, None, [], f"Feature validation failed: {val_msg}"
 
-        # 3. Security Assessment
-        assessment = assess_security(features)
+        # Load raw packets for deep IKE proposal dissection
+        raw_pkts = None
+        ike_map = {}
+        try:
+            from scapy.all import rdpcap
+            from analyzer.ike_dissector import extract_all_ike_negotiations
+            raw_pkts = rdpcap(str(pcap_path))
+            ike_map = extract_all_ike_negotiations(raw_pkts)
+        except Exception:
+            raw_pkts = None
+            ike_map = {}
+
+        # 3. Security Assessment with IKE Proposal Gating
+        assessment = assess_security(features, ike_map=ike_map)
 
         # 4. ML Inference
         ml_result = run_ml_inference(features)
 
-        # 5. Build Final Report
+        # 5. Build Final Report with per-tunnel breakdown
         report = build_full_report(
             features=features,
             assessment=assessment,
             ml_result=ml_result,
             pcap_name=pcap_path.name,
-            reports_dir=reports_dir
+            reports_dir=reports_dir,
+            raw_packets=raw_pkts,
+            ike_map=ike_map
         )
 
         # Optional: Save intermediate dataset files if dataset_dir provided

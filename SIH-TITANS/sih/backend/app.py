@@ -155,6 +155,13 @@ def update_settings():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
+@app.route("/api/guide/pdf", methods=["GET"])
+def download_guide_pdf():
+    target = REPORTS_DIR / "TITAN_Team_Master_Guide_Zero_To_Hero.pdf"
+    if target.exists():
+        return send_file(target, as_attachment=True, download_name="TITAN_Team_Master_Guide_Zero_To_Hero.pdf", mimetype="application/pdf")
+    return jsonify({"error": "Team guide PDF not found"}), 404
+
 @app.route("/api/compliance/pdf", methods=["GET"])
 def download_compliance_pdf():
     target = REPORTS_DIR / "TITAN_SIH_Problem_Statement_Compliance_Report.pdf"
@@ -327,17 +334,28 @@ def download_report(report_id):
 @app.route("/api/reports/<report_id>/pdf", methods=["GET"])
 def download_pdf_report(report_id):
     safe_id = secure_filename(report_id)
-    pdf_target = REPORTS_DIR / f"{safe_id}.pdf"
-    if not pdf_target.exists():
-        json_target = REPORTS_DIR / f"{safe_id}.json"
-        if not json_target.exists():
-            return jsonify({"error": "Report not found"}), 404
+    json_target = REPORTS_DIR / f"{safe_id}.json"
+    data = None
+    if json_target.exists():
         data = load_json(json_target, None)
-        if not data:
-            return jsonify({"error": "Unable to read report"}), 500
-        create_pdf_report(data, pdf_target)
+    else:
+        # Fallback check final_report.json
+        final_data = load_json(REPORT_FILE, None)
+        if final_data and final_data.get("report_id") == report_id:
+            data = final_data
 
-    return send_file(pdf_target, as_attachment=True, download_name=f"{safe_id}.pdf", mimetype="application/pdf")
+    if not data:
+        return jsonify({"error": f"Report {report_id} not found"}), 404
+
+    pdf_target = REPORTS_DIR / f"{safe_id}.pdf"
+    # ALWAYS generate fresh PDF from latest JSON data
+    create_pdf_report(data, pdf_target)
+
+    resp = send_file(pdf_target, as_attachment=True, download_name=f"{safe_id}.pdf", mimetype="application/pdf")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 @app.route("/api/report/pdf", methods=["GET"])
 def download_latest_pdf():
@@ -347,9 +365,31 @@ def download_latest_pdf():
 
     safe_id = secure_filename(data["report_id"])
     pdf_target = REPORTS_DIR / f"{safe_id}.pdf"
+    # ALWAYS generate fresh PDF from latest JSON data
     create_pdf_report(data, pdf_target)
-    return send_file(pdf_target, as_attachment=True, download_name=f"{safe_id}.pdf", mimetype="application/pdf")
 
+    resp = send_file(pdf_target, as_attachment=True, download_name=f"{safe_id}.pdf", mimetype="application/pdf")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+
+@app.route("/api/reports/<report_id>/remediation", methods=["GET"])
+def get_remediation_scripts(report_id):
+    target = REPORTS_DIR / f"{secure_filename(report_id)}.json"
+    if target.exists():
+        data = load_json(target, {})
+        remediation = data.get("remediation_scripts", {})
+        target_fmt = request.args.get("target", "all").lower()
+        if target_fmt == "cisco":
+            return remediation.get("cisco_ios_xe_cli", ""), 200, {"Content-Type": "text/plain"}
+        elif target_fmt == "strongswan":
+            return remediation.get("strongswan_swanctl_conf", ""), 200, {"Content-Type": "text/plain"}
+        elif target_fmt == "fortinet":
+            return remediation.get("fortinet_fortigate_cli", ""), 200, {"Content-Type": "text/plain"}
+        return jsonify(remediation)
+    return jsonify({"error": "Report not found"}), 404
 
 @app.route("/api/reports/<report_id>/siem", methods=["GET"])
 def export_siem_event(report_id):
@@ -547,11 +587,7 @@ def start_live_capture():
         capture_stats["active_interface"] = str(getattr(iface_to_use, "name", iface_to_use))
         is_sniffing = True
 
-        # Launch background real-time telemetry streaming worker
-        if live_thread is None or not live_thread.is_alive():
-            live_thread = threading.Thread(target=live_stream_feeder_worker, daemon=True)
-            live_thread.start()
-
+        sniffer_active = False
         try:
             sniffer_instance = AsyncSniffer(
                 iface=iface_to_use,
@@ -559,8 +595,15 @@ def start_live_capture():
                 store=False
             )
             sniffer_instance.start()
+            sniffer_active = True
         except Exception:
-            pass
+            sniffer_active = False
+
+        # Only use background simulated feed if OS raw socket permissions prevent live sniffing
+        if not sniffer_active:
+            if live_thread is None or not live_thread.is_alive():
+                live_thread = threading.Thread(target=live_stream_feeder_worker, daemon=True)
+                live_thread.start()
 
         return jsonify({
             "status": "running",

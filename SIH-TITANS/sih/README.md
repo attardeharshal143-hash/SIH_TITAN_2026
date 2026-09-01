@@ -1,25 +1,25 @@
-﻿# 🛡️ TITAN: IPsec Security Intelligence & Automated Audit Platform
-> **AI-Driven Deep Packet Inspection, Cryptographic Vulnerability Auditing, Encrypted Traffic Analysis (ETA), Post-Quantum Readiness Scoring & MITRE ATT&CK Mapping for IPsec VPNs.**
+# 🛡️ TITAN: IPsec Security Intelligence & Automated Audit Platform
+> **AI-Driven Deep Packet Inspection, Cryptographic Vulnerability Auditing, Multi-Moment Encrypted Traffic Analysis (ETA), Post-Quantum Readiness Scoring & MITRE ATT&CK Mapping for IPsec VPNs.**
 
 ---
 
 ## 🌟 Executive Summary & Problem Statement
 
-Modern enterprise, banking, and defense infrastructures rely heavily on **IPsec Virtual Private Networks (VPNs)** to secure sensitive site-to-site and remote-access communications. However, security teams and SOC analysts face major challenges:
+Modern enterprise, banking, and defense infrastructures rely heavily on **IPsec Virtual Private Networks (VPNs)** to secure sensitive site-to-site and remote-access communications. However, security teams and SOC analysts face critical operational blindspots:
 
-1. **The "Encrypted Black Box" Blindspot**: Standard network monitoring tools treat IPsec ESP (Protocol 50) traffic as opaque blobs, creating zero visibility into tunnel health or configuration flaws.
-2. **Silent Cleartext Leakage**: Misconfigurations (such as split-tunneling bypasses) often allow unencrypted DNS queries or HTTP/TCP streams to escape the tunnel unnoticed.
-3. **Cryptographic Weaknesses & Downgrades**: Legacy proposals (e.g., IKEv1 Aggressive Mode hash exposures, 3DES ciphers, MD5 hashes, weak Diffie-Hellman groups) expose organizations to interception.
-4. **Post-Quantum Vulnerability**: Most legacy tunnels lack assessment against upcoming quantum threats ("Harvest Now, Decrypt Later").
-5. **Manual Analysis Overhead**: Manually analyzing packet traces in Wireshark takes hours of senior engineer time.
+1. **The "Encrypted Black Box" Blindspot**: Standard network monitoring tools treat IPsec ESP (Protocol 50) traffic as opaque blobs, creating zero visibility into tunnel health, anti-replay synchronization, or cryptographic downgrade risks.
+2. **Context Misclassification**: Conventional static audit tools falsely assume every network capture contains an IPsec VPN, mislabeling benign plaintext HTTP or DNS traffic as "tunnel leaks" or "VoIP".
+3. **Silent Cleartext Leakage**: Misconfigurations (such as split-tunneling bypasses) often allow unencrypted enterprise traffic to escape the VPN tunnel unnoticed.
+4. **Cryptographic Weaknesses & Downgrades**: Legacy proposals (e.g., IKEv1 Aggressive Mode hash exposures, 3DES ciphers, MD5 hashes, weak Diffie-Hellman groups) expose organizations to active adversary interception.
+5. **Post-Quantum Vulnerability**: Most legacy tunnels lack quantitative assessment against upcoming quantum computing decryption threats ("Harvest Now, Decrypt Later").
 
-**TITAN** solves these challenges by providing an **automated, instant cybersecurity auditing engine** that ingests any network capture (`.pcap`, `.pcapng`) or sniffs live network adapters, evaluates cryptographic posture in seconds, assigns a **Security Grade (A+ to F)**, and generates **Certified PDF Audit Reports** and **SIEM Telemetry Events**.
+**TITAN** solves these challenges by providing an **automated, context-aware cybersecurity auditing engine** that ingests any network capture (.pcap, .pcapng) or sniffs live network adapters, evaluates cryptographic posture in seconds, assigns a **Security Grade (A+ to F)**, and generates **Certified PDF Audit Reports**, **Hardened Remediation Scripts**, and **SIEM Telemetry Events**.
 
 ---
 
 ## 🚀 Key Platform Capabilities
 
-```text
+`	ext
                ┌──────────────────────────────────────────────────────────┐
                │          INPUT: PCAP File Upload OR Live Wire Feed       │
                └────────────────────────────┬─────────────────────────────┘
@@ -29,133 +29,167 @@ Modern enterprise, banking, and defense infrastructures rely heavily on **IPsec 
                │                TITAN CORE INSPECTION ENGINE              │
                │                                                          │
                │  1. Deep Packet Inspection (ESP Proto 50, AH Proto 51)   │
-               │  2. Key Exchange Auditing (IKEv2 / NAT-T UDP 500/4500)   │
-               │  3. Encrypted Traffic Analysis (ETA) Fingerprinting      │
-               │  4. Cryptographic Downgrade & Weakness Detector          │
-               │  5. Post-Quantum Cryptography (PQC) Readiness Scoring    │
-               │  6. MITRE ATT&CK Matrix Mapping (T1048, T1572, M1037)    │
-               │  7. Random Forest Machine Learning Traffic Classifier    │
-               │  8. Anti-Replay & Sequence Integrity Verification        │
-               │  9. MTU Overhead & Fragmentation Risk Assessment         │
+               │  2. RFC 4301 Per-SA Anti-Replay Sequence Validation      │
+               │  3. Exact Byte-Level Shannon Entropy Calculation         │
+               │  4. Multi-Moment Encrypted Traffic Analysis (ETA)        │
+               │  5. Operating Mode & AES-GCM-256 Cipher Auto-Inference   │
+               │  6. Multi-Tier Post-Quantum (PQC) Readiness Scoring      │
+               │  7. MITRE ATT&CK Matrix Mapping (T1048, T1572, T1040)    │
+               │  8. 1,600-Sample Random Forest Machine Learning Model    │
+               │  9. Automated Multi-Vendor Hardening Script Generator    │
                └────────────────────────────┬─────────────────────────────┘
                                             │
                                             ▼
                ┌──────────────────────────────────────────────────────────┐
                │                       OUTPUTS                            │
-               │  • Interactive Glassmorphic Web Dashboard                │
+               │  • Interactive 7-Section Glassmorphic Web Dashboard      │
+               │  • StrongSwan, Cisco IOS-XE & Fortinet Remediation CLI   │
                │  • Certified Multi-Section PDF Security Audit Report     │
                │  • Standardized SIEM JSON Event Stream (Splunk / Elastic)│
                └──────────────────────────────────────────────────────────┘
-```
-
-### 1. 🔍 Deep Cryptographic Packet Inspection
-- Parses IPv4/IPv6 headers and isolates **ESP (Protocol 50)**, **AH (Protocol 51)**, and **IKE/ISAKMP (UDP 500/4500)** frames.
-- Dissects active **Security Parameters Index (SPI)** values, tracks directional flows (Inbound vs Outbound SAs), and verifies sequence number monotonicity for **Anti-Replay protection**.
-
-### 2. 🕵️ Encrypted Traffic Analysis (ETA) & Application Fingerprinting
-- Statistically profiles packet size distributions, burstiness indices, and temporal intervals to infer application behavior inside the encrypted tunnel **without decrypting payloads**:
-  - *Interactive Shell / VoIP / Command Streams* (Low latency, fixed small frames)
-  - *Bulk Encrypted Data Transfer / Database Sync* (MSS-saturated frames)
-  - *HTTPS / API Web Services over IPsec* (Bimodal request-response flow)
-
-### 3. 📉 Cryptographic Weakness & Downgrade Attack Detection
-- Audits active proposals against obsolete standards:
-  - ❌ **Legacy Ciphers**: Flags DES, 3DES, Blowfish, RC4.
-  - ❌ **Weak Hashes**: Flags MD5, SHA-1 truncated MACs.
-  - ❌ **Weak Diffie-Hellman Groups**: Flags DH Group 1 (768-bit), Group 2 (1024-bit), Group 5 (1536-bit).
-  - ❌ **IKE PSK Exposure**: Audits IKE handshakes for unencrypted hash exposure in IKEv1 Aggressive Mode.
-
-### 4. ⚛️ Post-Quantum Cryptography (PQC) Readiness Score
-- Evaluates tunnel resistance against quantum computing threats based on **NSA CNSA 2.0 & NIST** recommendations.
-- Generates a **Quantum Resistance Index** (e.g., `85% Quantum-Resistant (CNSA 2.0 Symmetric Tier)`).
-
-### 5. 🗺️ MITRE ATT&CK Matrix Mapping & SIEM Integration
-- Automatically correlates security findings to formal MITRE ATT&CK techniques:
-  - `T1048`: Exfiltration Over Alternative Protocol (Cleartext leak detection)
-  - `T1572`: Protocol Tunneling (Uncontrolled bypass transport streams)
-  - `T1040`: Network Sniffing (AH unencrypted payload exposure)
-  - `M1037`: Filter Network Traffic (Defensive encapsulation baseline)
-- Exposes structured SIEM JSON telemetry at `/api/report/siem` for direct ingestion into **Splunk**, **Wazuh**, or **Elasticsearch**.
-
-### 6. 📡 Real-Time Live Sniffing & One-Click Live Audit
-- Auto-discovers physical and virtual network adapters (Wi-Fi, Ethernet, VPN virtual NICs).
-- Sniffs wire traffic in real time, computes live Ingress/Egress throughput (Mbps), and provides an instant **"Analyze Live Feed & Generate Report"** action.
-
-### 7. 📄 Multi-Section Certified PDF Audit Reports
-- Generates professional, multi-section PDF audit reports containing Executive Summaries, Security Grades, Protocol Distribution Matrices, ETA Fingerprints, MITRE ATT&CK Tables, and Actionable Hardening Checklists.
+`
 
 ---
 
-## 🏗️ Technical Architecture & Project Structure
+## 🔬 Core Engineering Innovations & Enhancements
 
-```text
+### 1. 🌐 Context-Aware Protocol Reality & Zero-Mock Analysis
+- **Strict Non-IPsec vs. IPsec Context Separation**:
+  - For **Non-IPsec Captures** (*e.g., plain HTTP, DNS, TLS, ICMP*): Identifies the Layer-7 application flow directly (HTTP GET /index.html), assigns baseline Grade B (15/100 risk), with **0 fake SPIs, 0 fake IKE narratives, and 0 fake split-tunnel leaks**.
+  - For **Genuine IPsec Captures**: Evaluates ESP encapsulation, extracts real 32-bit SPIs, tracks per-SA sequence numbers, and audits true split-tunnel leakage.
+
+### 2. 🧮 Mathematical Shannon Entropy & Per-SA Anti-Replay
+- **Byte-Level Shannon Entropy ($)**:
+  H = -\sum_{i=0}^{255} p_i \log_2(p_i)
+  - Encrypted ESP frames:  \approx 6.58\text{ to }7.98\text{ bits/byte}$ (Cryptographic pseudorandomness confirmed).
+  - Cleartext ASCII/HTTP frames:  \approx 3.2\text{ to }4.8\text{ bits/byte}$ (Flags unencrypted transport).
+- **RFC 4301 / 4303 Per-SA Sequence Monotonicity**:
+  - Groups sequence numbers strictly per Security Association (per-SPI) to verify monotonic ordering ({i+1} > s_i$) and eliminate false cross-SA duplicate sequence collisions.
+
+### 3. 🎙️ Multi-Moment Encrypted Traffic Analysis (ETA) Discrimination
+Statistically profiles packet lengths, variances, burstiness indices ( = \sigma_L / \mu_L$), and quantiles to discriminate application classes inside encrypted ESP tunnels without decryption:
+
+| Traffic Class | Typical Packet Profile | Statistical Moments | Real-World Application |
+| :--- | :---: | :---: | :---: |
+| **VoIP / Real-Time Voice** | \text{–}260\text{B}$ fixed audio frames | $\mu_L \approx 180\text{B}, \sigma_L < 45\text{B}, B < 0.10$ | RTP / Opus / G.711 voice calls |
+| **Adaptive Video Stream** | Bursty I/P frame cadence | $\mu_L \approx 685\text{B}, \sigma_L > 220\text{B}, B > 0.35$ | H.264 / H.265 video teleconferencing |
+| **Bulk Data Transfer** | MSS MTU saturating ($\\ge 1350\text{B}$) | $\mu_L > 1200\text{B}, \ge 65\% \text{ MTU packets}$ | Database replication, cloud backup |
+| **Interactive Shell** | Lightweight keystroke frames | $\mu_L < 150\text{B}, 100\% < 200\text{B}$ | SSH remote management / CLI |
+| **Web API / REST** | Request-response transactions | $\mu_L \approx 300\text{–}900\text{B}$, bimodal | HTTPS / REST microservices |
+
+### 4. ⚛️ Multi-Tier Post-Quantum Cryptography (PQC) Calculation
+Quantitatively measures resistance against quantum adversaries (Shor\'s and Grover\'s algorithms) based on **NSA CNSA 2.0 & NIST SP 800-77**:
+\text{PQC Score} = \text{Symmetric Tier (Max 40)} + \text{KEM Tier (Max 40)} + \text{Integrity Tier (Max 20)}
+- **AES-GCM-256 + Curve25519 + SHA-384**:  + 25 + 20 = \mathbf{85\% \text{ (Quantum-Resistant)}}$.
+- **AH Protocol 51 (No Encryption)**:  + 10 + 10 = \mathbf{20\% \text{ (Vulnerable)}}$.
+- **Non-IPsec / Plaintext**: $\mathbf{0\% \text{ (N/A)}}$.
+
+### 5. 🔬 Precise Operating Mode & Cipher Auto-Inference (cipher_mode_infer.py)
+- Dissects packet encapsulation overhead to determine:
+  - **Tunnel Mode**: \text{ to }64\text{ bytes}$ overhead (Gateway-to-Gateway IP-in-IP Encapsulation).
+  - **Transport Mode**: \text{ to }44\text{ bytes}$ overhead (Host-to-Host).
+- Identifies symmetric ciphers via Integrity Check Value (ICV) tag length and entropy:
+  - 16-byte ICV + High Entropy $\rightarrow$ **AES-GCM-256 AEAD (Galois/Counter Mode)** with 128-bit GHASH GMAC tag.
+
+### 6. ⚡ Automated Multi-Vendor Hardening Script Generator (
+emediation_generator.py)
+Dynamically creates ready-to-deploy, copy-pasteable configuration files tailored to the specific audit findings:
+- 🌐 **Linux StrongSwan**: swanctl.conf enforcing es256gcm16-prfsha384-ecp384-modp2048!.
+- 🏢 **Cisco IOS-XE / ASA**: crypto ipsec transform-set esp-gcm 256 CLI commands with PFS Group 19.
+- 🛡️ **Fortinet FortiGate**: Phase-1/Phase-2 es256gcm CLI configuration with ASIC hardware offloading.
+
+---
+
+## 🤖 Machine Learning Model Architecture
+
+| Parameter | Specification |
+| :--- | :--- |
+| **Model Algorithm** | **Random Forest Classifier** (
+_estimators = 200, max_depth = 12) |
+| **Model Artifact** | sih/dataset/ipsec_ml_model.joblib |
+| **Training Dataset** | sih/dataset/ml_training_dataset.json (**1,600 labeled packet feature samples**) |
+| **Validation Accuracy** | **100.00%** (5-Fold Stratified Cross-Validation) |
+| **Feature Vector (10D)** | packet_length, ip_version, ip_proto, src_port, dst_port, ike_candidate, esp, h, icmp, dns |
+
+---
+
+## 🏗️ Project Directory Structure
+
+`	ext
 sih/
-├── frontend/                     # Interactive Web Dashboard
-│   ├── index.html                # Home Landing Page & Engine Health Pill
-│   ├── analyzer.html             # Drag & Drop PCAP Analyzer & ETA/MITRE Panels
-│   ├── reports.html              # Historical Audit Archive & PDF Downloads
+├── frontend/                     # Interactive Web Dashboard (HTML5 / Tailwind CSS / JS)
+│   ├── index.html                # Home Landing Page & Quick Output Audit Links
+│   ├── analyzer.html             # Drag & Drop PCAP Ingestion & Progress Tracker
+│   ├── report_viewer.html        # 7-Section Comprehensive Audit Report Viewer
+│   ├── reports.html              # Dynamic Historical Reports Archive & Bento Grid
 │   ├── live_monitor.html         # Real-time Packet Sniffer & Live Audit Engine
-│   ├── about.html                # Protocol Specifications & Architecture
-│   ├── settings.html             # Dynamic Cloud API URL Configuration
+│   ├── about.html                # Platform Architecture & Standards Reference
+│   ├── settings.html             # Platform Preferences & Threshold Synchronizer
 │   └── js/
-│       └── api.js                # Universal API Gateway Resolver
+│       ├── api.js                # Universal API Gateway Resolver
+│       └── titan-turbo.js        # UI Navigation & Animation Engine
 ├── backend/
-│   ├── app.py                    # Unified Flask REST API & Static Asset Server
+│   ├── app.py                    # Unified Flask REST API & Socket Sniffer
 │   └── __init__.py
-├── analyzer/                     # Core Security Engine Modules
-│   ├── feature_extractor.py      # Scapy Packet Feature Extractor
-│   ├── validate_features.py      # Structural Data Integrity Validator
-│   ├── ipsec_detector.py         # Protocol Classifier & Counter
-│   ├── security_analyzer.py      # Deep Risk Assessor & Grade Calculator
-│   ├── eta_fingerprint.py        # Encrypted Traffic Analysis & Fingerprinting
-│   ├── advanced_security_auditor.py # MITRE Mapping, PQC Scoring, IKE PSK Audit
+├── analyzer/                     # Core Forensic & ML Engine Modules
+│   ├── feature_extractor.py      # Scapy Packet Dissector & Shannon Entropy Math
+│   ├── security_analyzer.py      # Risk Scoring, Grade Calculator & Per-SA Anti-Replay
+│   ├── eta_fingerprint.py        # Multi-Moment Statistical ETA Discrimination
+│   ├── cipher_mode_infer.py      # Tunnel/Transport Mode & AES-GCM Cipher Inference
+│   ├── remediation_generator.py  # Multi-Vendor Remediation Script Generator
+│   ├── advanced_security_auditor.py # PQC Tier Scoring & MITRE ATT&CK Mapping
 │   ├── ml_predict.py             # Random Forest Inference Pipeline
-│   ├── train_ml_model.py         # Model Training Pipeline
+│   ├── train_ml_model.py         # 1,600-Sample Model Trainer with 5-Fold CV
 │   ├── generate_report.py        # Comprehensive JSON Report Builder
 │   ├── generate_pdf_report.py    # Multi-Section PDF Report Generator (fpdf2)
-│   ├── run_pipeline.py           # In-Process End-to-End Orchestrator
+│   ├── validate_features.py      # Structural Data Integrity Validator
+│   ├── run_pipeline.py           # End-to-End Orchestrator Pipeline
 │   └── __init__.py
 ├── dataset/                      # Reference Models & Test Captures
-│   ├── ipsec_ml_model.joblib     # Pre-Trained Random Forest Classifier
-│   ├── ml_training_dataset.json  # Reference Feature Training Set
-│   ├── final_ipsec.pcap          # Verified 100% Encrypted ESP Test Capture
+│   ├── ipsec_ml_model.joblib     # Pre-Trained 200-Tree Random Forest Model
+│   ├── ml_training_dataset.json  # 1,600-Sample Labeled Training Dataset
+│   ├── final_ipsec.pcap          # Ground-Truth 100% Encrypted ESP Capture (Grade A+)
+│   ├── test_voip_esp.pcap        # Ground-Truth VoIP ESP Capture (Mean 179B, Std 9B)
+│   ├── test_video_esp.pcap       # Ground-Truth Video ESP Capture (Bursty I/P Frames)
+│   ├── test_bulk_esp.pcap        # Ground-Truth Bulk Transfer ESP Capture (MSS 1420B)
+│   ├── test_plain_http.pcap      # Ground-Truth Plain HTTP Capture (Non-IPsec Baseline)
 │   └── varied_ipsec.pcap         # Multi-Protocol Traffic Capture
-├── reports/                      # Runtime Generated Audit Reports (.json & .pdf)
+├── reports/                      # Runtime Generated JSON & PDF Audit Reports
 ├── requirements.txt              # Production Dependencies
-├── .env.example                  # Environment Configuration Template
-├── .gitignore                    # Git Ignore Rules
 └── README.md                     # Master Documentation
-```
+`
 
 ---
 
-## 🛠️ Quick Start Guide
+## 🛠️ Quick Start & Local Execution
 
 ### 1. Prerequisites
 - **Python 3.9+** (Windows, Linux, or macOS)
-- Standard `pip` package manager
+- Standard pip package manager
 
 ### 2. Installation
-```bash
+`ash
 # Clone the repository
-git clone https://github.com/your-username/sih-ipsec-analyzer.git
-cd sih-ipsec-analyzer/sih
+git clone https://github.com/attardeharshal143-hash/SIH_TITAN_2026.git
+cd SIH_TITAN_2026/sih
 
-# Install dependencies
+# Install required dependencies
 pip install -r requirements.txt
-```
+`
 
-### 3. Launching the Unified Application
-```bash
+### 3. Launch the Platform
+`ash
 python backend/app.py
-```
-*The backend API and static frontend web interface will start together at **`http://localhost:5000`**.*
+`
+*The unified backend and web interface will start at **http://localhost:5000**.*
 
-### 4. Exploring the Interface
-- **Home**: `http://localhost:5000/`
-- **PCAP Analyzer**: `http://localhost:5000/analyzer.html` (Upload any `.pcap` to see ETA, PQC, ML, and MITRE findings)
-- **Live Monitor**: `http://localhost:5000/live_monitor.html` (Sniff live NICs and run one-click audits)
-- **Reports Archive**: `http://localhost:5000/reports.html` (Download formatted PDF audit reports)
+### 4. Direct Web Routes
+- **Home**: http://localhost:5000/
+- **PCAP Analyzer**: http://localhost:5000/analyzer.html
+- **Reports Dashboard**: http://localhost:5000/reports.html
+- **Live Packet Monitor**: http://localhost:5000/live_monitor.html
+- **Platform Settings**: http://localhost:5000/settings.html
+- **Architecture & About**: http://localhost:5000/about.html
 
 ---
 
@@ -163,43 +197,25 @@ python backend/app.py
 
 | Endpoint | Method | Description | Data Returned |
 |---|---|---|---|
-| `/api/health` | `GET` | System health check and engine status | Service status, engine version |
-| `/api/analyze` | `POST` | Upload `.pcap` / `.pcapng` for instant deep analysis | Full report JSON, features, PDF link |
-| `/api/report` | `GET` | Retrieve latest report or query by `?id=...` | Report JSON |
-| `/api/reports` | `GET` | List all historical reports in database | Array of report summaries |
-| `/api/reports/<id>/pdf` | `GET` | Download official formatted PDF audit report | Binary `application/pdf` |
-| `/api/report/pdf` | `GET` | Download latest audit report as PDF | Binary `application/pdf` |
-| `/api/reports/<id>/download` | `GET` | Download raw report data as JSON | JSON file attachment |
-| `/api/report/siem` | `GET` | Export latest telemetry formatted for SIEM | SIEM JSON alert event |
-| `/api/reports/<id>/siem` | `GET` | Export specific report for SIEM | SIEM JSON alert event |
-| `/api/features` | `GET` | Retrieve extracted packet feature vectors | Array of feature dictionaries |
-| `/api/live/interfaces` | `GET` | List all available physical/virtual NICs | Array of network adapters |
-| `/api/live/start` | `POST` | Start real-time packet sniffing | Status, active adapter name |
-| `/api/live/stop` | `POST` | Pause live packet capture | Status confirmation |
-| `/api/live/packets` | `GET` | Poll live packet stream & throughput | Throughput (Mbps), packet telemetry |
-| `/api/live/analyze` | `POST` | Analyze live captured packets & generate PDF | Live audit report & PDF download URL |
-
----
-
-## 👥 Use Cases Across Cybersecurity Roles
-
-| Role | Primary Workflow | Key Benefit |
-|---|---|---|
-| **🛡️ SOC Analyst / Blue Team** | Monitors live packet telemetry to detect cleartext leaks, split-tunneling anomalies, or unencrypted DNS queries escaping the VPN. | Instant real-time alerts on VPN tunnel failures. |
-| **⚔️ Security Auditor / Red Team** | Ingests packet captures to verify IKE exchange modes, detect weak PSK exposure, and test compliance with modern cipher baselines. | Passive, non-intrusive auditing with zero network disruption. |
-| **📋 CISO & Compliance Officer** | Generates certified multi-section PDF audit reports to satisfy compliance audits (**ISO 27001**, **NIST SP 800-77**, **PCI-DSS**). | One-click certified PDF evidence of encryption compliance. |
-| **🌐 Network Engineer** | Analyzes MTU overhead telemetry to prevent PMTU blackholes and packet fragmentation slowdowns. | Optimizes VPN throughput and eliminates packet loss. |
-
----
-
-## 🔒 Security & Deployment Notes
-
-- **Zero VM / Localhost Dependency**: 100% self-contained pure Python architecture. Does not depend on VirtualBox, Kali Linux, root namespaces, or hardcoded paths.
-- **Production Independence**: Ready for single-click deployment to **Render**, **Railway**, **AWS**, or **Docker**.
-- **Privacy & Safety**: Processes captures in-memory or in isolated temporary buffers, with automatic buffer cleanup upon completion.
+| /api/health | GET | System health check and engine status | Service status, engine version |
+| /api/analyze | POST | Upload .pcap / .pcapng for instant deep analysis | Full report JSON, features, PDF link |
+| /api/report | GET | Retrieve latest report or query by ?id=... | Complete report JSON |
+| /api/reports | GET | List all historical reports in database | Array of report summaries |
+| /api/reports/<id>/pdf | GET | Download official formatted PDF audit report | Binary pplication/pdf stream |
+| /api/reports/<id>/remediation | GET | Download remediation scripts (?target=cisco|strongswan|fortinet) | Script text / JSON |
+| /api/reports/<id>/siem | GET | Export report telemetry formatted for SIEM (ECS v1.12) | SIEM JSON alert event |
+| /api/reports/clear | POST | Purge all stored reports and PDFs | Confirmation status |
+| /api/settings | GET/POST| Fetch or update runtime platform settings | Settings JSON object |
+| /api/guide/pdf | GET | Download the Master Team Guide PDF | Binary pplication/pdf stream |
+| /api/compliance/pdf | GET | Download Problem Statement Compliance Report PDF | Binary pplication/pdf stream |
+| /api/live/interfaces | GET | List all physical and virtual network adapters | Array of network interfaces |
+| /api/live/start | POST | Start real-time packet capture on specified NIC | Status, active adapter name |
+| /api/live/stop | POST | Pause live packet capture | Status confirmation |
+| /api/live/packets | GET | Poll live packet stream & throughput metrics | Ingress/Egress Mbps, packet array |
+| /api/live/analyze | POST | Analyze live captured frames & generate report | Report JSON and PDF URL |
 
 ---
 
 ## 📄 License & Attribution
 
-Developed for the **Smart India Hackathon (SIH)**. Distributed under the MIT License.
+Developed for the **Smart India Hackathon (SIH 2026)**. Distributed under the MIT License.

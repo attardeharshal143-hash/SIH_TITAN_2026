@@ -143,16 +143,16 @@
                 <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 01 / 07</span>
                 <h2 class="text-xl font-bold text-on-surface">1. Executive Summary & Security Posture</h2>
             </div>
-            <span class="px-3 py-1 rounded-full bg-secondary-container/40 text-secondary text-xs font-bold font-mono">NSA CNSA 2.0 &bull; NIST SP 800-77 COMPLIANT</span>
+            <span id="rep-compliance-pill" class="px-3 py-1 rounded-full text-xs font-bold font-mono transition-colors">NSA CNSA 2.0 &bull; NIST SP 800-77 COMPLIANT</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
             <div class="bg-surface-container-low rounded-2xl p-6 border border-outline-variant/20 flex flex-col justify-between items-center text-center">
                 <span class="text-[10px] font-bold uppercase font-mono text-outline">EXECUTIVE SECURITY GRADE</span>
-                <div class="w-24 h-24 my-3 rounded-2xl bg-secondary-container/30 border-2 border-secondary/40 flex flex-col items-center justify-center">
-                    <span id="rep-grade-display" class="text-5xl font-black text-secondary leading-none">A+</span>
-                    <span class="text-[9px] font-mono text-secondary uppercase tracking-widest mt-1 font-bold">GRADE</span>
+                <div id="rep-grade-box" class="w-24 h-24 my-3 rounded-2xl border-2 flex flex-col items-center justify-center transition-all duration-300 shadow-xs">
+                    <span id="rep-grade-display" class="text-5xl font-black leading-none">A+</span>
+                    <span id="rep-grade-subtext" class="text-[9px] font-mono uppercase tracking-widest mt-1 font-bold">GRADE</span>
                 </div>
-                <div class="text-xs font-bold text-secondary uppercase font-mono" id="rep-risk-tag">LOW RISK (10/100)</div>
+                <div class="text-xs font-bold uppercase font-mono transition-colors" id="rep-risk-tag">LOW RISK (10/100)</div>
             </div>
             <div class="md:col-span-2 bg-surface-container-low rounded-2xl p-6 border border-outline-variant/20 flex flex-col justify-between">
                 <div class="space-y-2">
@@ -166,6 +166,34 @@
                     <div><span class="text-[10px] text-outline block uppercase">ESP Encapsulation</span><span id="rep-summary-esp-pct" class="font-bold text-primary text-base">100%</span></div>
                     <div><span class="text-[10px] text-outline block uppercase">Cleartext Leaks</span><span id="rep-summary-leaks" class="font-bold text-secondary text-base">0 (NONE)</span></div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Per-SA / Per-Tunnel Multi-Flow Breakdown -->
+        <div id="rep-multi-sa-container" class="mt-6 pt-5 border-t border-outline-variant/20 hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="text-xs font-bold font-mono text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">alt_route</span>
+                    Partitioned Per-Tunnel Security Associations (Multi-Flow Breakdown)
+                </h4>
+                <span id="rep-sa-count-pill" class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold font-mono">3 ACTIVE SAs</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-outline-variant/30 bg-surface-container-low">
+                <table class="w-full text-left border-collapse text-xs font-mono">
+                    <thead class="bg-surface-container text-on-surface text-[11px] border-b border-outline-variant/30">
+                        <tr>
+                            <th class="p-3">SPI (SA)</th>
+                            <th class="p-3">Tunnel Endpoints</th>
+                            <th class="p-3">Traffic Volume</th>
+                            <th class="p-3">Inferred Cipher</th>
+                            <th class="p-3 text-center">PQC Grade</th>
+                            <th class="p-3">ETA Application Classification</th>
+                            <th class="p-3">Anti-Replay Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rep-multi-sa-tbody" class="divide-y divide-outline-variant/20 text-on-surface-variant">
+                    </tbody>
+                </table>
             </div>
         </div>
     </section>
@@ -186,9 +214,10 @@
                     Cryptographic Parameters & Security Associations
                 </h3>
                 <div class="divide-y divide-outline-variant/20 font-mono">
+                    <div class="py-2 flex justify-between"><span class="text-outline">Operating Mode:</span><span class="font-bold text-primary" id="rep-crypto-opmode">Tunnel Mode (RFC 4301)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Inferred Cipher Suite:</span><span class="font-bold text-secondary" id="rep-crypto-cipher">AES-GCM-256 AEAD</span></div>
                     <div class="py-2 flex justify-between"><span class="text-outline">Payload Encryption:</span><span class="font-bold text-secondary" id="rep-crypto-enc">Enforced (ESP Protocol 50)</span></div>
-                    <div class="py-2 flex justify-between"><span class="text-outline">Authentication Header:</span><span class="font-bold text-on-surface" id="rep-crypto-ah">None (Pure ESP Tunnel)</span></div>
-                    <div class="py-2 flex justify-between"><span class="text-outline">IKE PSK Exposure Risk:</span><span class="font-bold text-secondary" id="rep-crypto-psk">LOW (Zero Aggressive Leaks)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Authentication / ICV Tag:</span><span class="font-bold text-on-surface" id="rep-crypto-integ">AEAD GHASH 128-bit</span></div>
                     <div class="py-2 flex justify-between"><span class="text-outline">Distinct Active SPIs:</span><span class="font-bold text-primary truncate max-w-xs" id="rep-crypto-spis">0xc743e05b, 0x18f77ea1</span></div>
                 </div>
             </div>
@@ -389,6 +418,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+var currentRemediationData = {};
+var activeRemediationTab = 'strongswan';
+
+function switchRemediationTab(tab) {
+    activeRemediationTab = tab;
+    ['strongswan', 'cisco', 'fortinet'].forEach(function(t) {
+        var b = document.getElementById('btn-tab-' + t);
+        if (b) {
+            if (t === tab) {
+                b.className = 'px-2.5 py-1 rounded text-xs font-mono bg-primary text-white font-bold transition-all cursor-pointer';
+            } else {
+                b.className = 'px-2.5 py-1 rounded text-xs font-mono bg-surface hover:bg-surface-variant text-on-surface-variant transition-all cursor-pointer';
+            }
+        }
+    });
+
+    var block = document.getElementById('rep-remediation-block');
+    if (block && currentRemediationData) {
+        if (tab === 'strongswan') block.textContent = currentRemediationData.strongswan_swanctl_conf || '# No StrongSwan config available';
+        else if (tab === 'cisco') block.textContent = currentRemediationData.cisco_ios_xe_cli || '! No Cisco config available';
+        else if (tab === 'fortinet') block.textContent = currentRemediationData.fortinet_fortigate_cli || '# No Fortinet config available';
+    }
+}
+
+function copyActiveRemediationScript() {
+    var block = document.getElementById('rep-remediation-block');
+    var btn = document.getElementById('btn-copy-remediation');
+    if (block && btn) {
+        navigator.clipboard.writeText(block.textContent).then(function() {
+            btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">check</span> Copied!';
+            setTimeout(function() {
+                btn.innerHTML = '<span class="material-symbols-outlined text-[14px]">content_copy</span> Copy Config';
+            }, 2000);
+        });
+    }
+}
+
 function renderAll7Sections(data) {
     var repId = data.report_id || 'REP-LATEST';
     var pcapName = data.pcap_file || 'final_ipsec.pcap';
@@ -407,7 +474,7 @@ function renderAll7Sections(data) {
     document.getElementById('rep-timestamp').textContent = data.generated_date_str || data.generated_at || 'Recently';
 
     var pdfBtn = document.getElementById('btn-pdf-download');
-    if (pdfBtn) pdfBtn.href = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + repId + '/pdf') : ('/api/reports/' + repId + '/pdf');
+    if (pdfBtn) pdfBtn.href = (typeof getApiUrl === 'function') ? (getApiUrl('/api/reports/' + repId + '/pdf') + '?t=' + Date.now()) : ('/api/reports/' + repId + '/pdf?t=' + Date.now());
 
     var siemBtn = document.getElementById('btn-siem-export');
     if (siemBtn) siemBtn.href = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + repId + '/siem') : ('/api/reports/' + repId + '/siem');
@@ -420,25 +487,122 @@ function renderAll7Sections(data) {
     var espPkts = summary.esp_packets || 0;
     var ahPkts = summary.ah_packets || 0;
     var ikePkts = summary.ike_candidates || 0;
-    var leakPkts = Math.max(0, totalPkts - espPkts - ikePkts - ahPkts);
-    var espPct = totalPkts > 0 ? ((espPkts / totalPkts) * 100).toFixed(1) : '100.0';
+    var isIpsec = (espPkts > 0 || ahPkts > 0 || ikePkts > 0 || assessment.ipsec_tunnel_detected);
+    var leakPkts = (assessment.leakage_assessment && assessment.leakage_assessment.is_vpn_leak) ? (summary.cleartext_packets || Math.max(0, totalPkts - espPkts - ikePkts - ahPkts)) : 0;
+    var espPct = totalPkts > 0 ? ((espPkts / totalPkts) * 100).toFixed(1) : '0.0';
 
-    document.getElementById('rep-grade-display').textContent = grade;
-    document.getElementById('rep-risk-tag').textContent = risk + ' RISK (' + score + '/100)';
+    var elGradeDisplay = document.getElementById('rep-grade-display');
+    var elGradeSubtext = document.getElementById('rep-grade-subtext');
+    var elGradeBox = document.getElementById('rep-grade-box');
+    var elRiskTag = document.getElementById('rep-risk-tag');
+    var elCompliancePill = document.getElementById('rep-compliance-pill');
+    var elStatusBadge = document.getElementById('rep-status-badge');
+
+    elGradeDisplay.textContent = grade;
+    elRiskTag.textContent = risk + ' (' + score + '/100)';
     document.getElementById('rep-summary-total-pkts').textContent = totalPkts.toLocaleString();
     document.getElementById('rep-summary-esp-pct').textContent = espPct + '%';
-    document.getElementById('rep-summary-leaks').textContent = leakPkts + ' (NONE)';
+    document.getElementById('rep-summary-leaks').textContent = isIpsec ? (leakPkts > 0 ? leakPkts + ' Packets' : '0 (None)') : 'N/A (Non-VPN)';
+
+    // Dynamic Color Coding according to Grade (A+ / A / B / C / F)
+    var normGrade = (grade || 'A').toUpperCase().trim();
+    if (normGrade === 'A+' || normGrade === 'A') {
+        // GREEN / EMERALD (Secure / Compliant)
+        if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-emerald-500/10 border-emerald-500/40 text-emerald-600 flex flex-col items-center justify-center shadow-xs';
+        if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-emerald-600 leading-none';
+        if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-emerald-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-emerald-600 uppercase font-mono';
+        if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 text-xs font-bold font-mono';
+        if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-semibold uppercase text-[10px]';
+    } else if (normGrade === 'B') {
+        // BLUE / CYAN (Baseline / Standard Non-VPN / Minor Warnings)
+        if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-blue-500/10 border-blue-500/40 text-blue-600 flex flex-col items-center justify-center shadow-xs';
+        if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-blue-600 leading-none';
+        if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-blue-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-blue-600 uppercase font-mono';
+        if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/30 text-xs font-bold font-mono';
+        if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 font-semibold uppercase text-[10px]';
+    } else if (normGrade === 'C') {
+        // AMBER / ORANGE (Vulnerabilities Detected / High Risk)
+        if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-amber-500/15 border-amber-500/50 text-amber-600 flex flex-col items-center justify-center shadow-xs';
+        if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-amber-600 leading-none';
+        if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-amber-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-amber-600 uppercase font-mono';
+        if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/40 text-xs font-bold font-mono';
+        if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 font-semibold uppercase text-[10px]';
+    } else {
+        // RED / CRIMSON (Critical Non-Compliance / Grade F)
+        if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-red-500/15 border-red-500/50 text-red-600 flex flex-col items-center justify-center shadow-xs';
+        if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-red-600 leading-none';
+        if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-red-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-red-600 uppercase font-mono';
+        if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-red-500/15 text-red-700 border border-red-500/40 text-xs font-bold font-mono';
+        if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-red-500/20 text-red-800 font-semibold uppercase text-[10px]';
+    }
+
+    // Inferred Mode & Cipher
+    var cInfer = data.cipher_mode_inference || {};
+    if (document.getElementById('rep-crypto-opmode')) document.getElementById('rep-crypto-opmode').textContent = cInfer.operating_mode || (isIpsec ? 'Tunnel Mode (RFC 4301)' : 'N/A (Non-VPN)');
+    if (document.getElementById('rep-crypto-cipher')) document.getElementById('rep-crypto-cipher').textContent = cInfer.inferred_cipher || (isIpsec ? 'AES-GCM-256 AEAD' : 'Plaintext HTTP/TCP');
+    if (document.getElementById('rep-crypto-integ')) document.getElementById('rep-crypto-integ').textContent = cInfer.integrity_algorithm || (isIpsec ? 'AEAD GHASH 128-bit' : 'Checksum Only');
 
     // Section 2
-    if (crypto.encryption_enforced !== undefined) {
+    if (!isIpsec) {
+        document.getElementById('rep-crypto-enc').textContent = 'None (Standard Plaintext / Application Layer)';
+        document.getElementById('rep-crypto-spis').textContent = 'None (Non-IPsec Stream)';
+        document.getElementById('rep-pqc-score-text').textContent = 'N/A (Non-VPN Stream)';
+        document.getElementById('rep-pqc-progress-fill').style.width = '0%';
+    } else {
         document.getElementById('rep-crypto-enc').textContent = crypto.encryption_enforced ? 'Enforced (ESP Protocol 50)' : 'NOT ENFORCED';
+        if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
+            document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
+        } else {
+            document.getElementById('rep-crypto-spis').textContent = 'Active Security Association';
+        }
+        var pqcScore = pqc.pqc_score !== undefined ? pqc.pqc_score : 85;
+        document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + (pqc.pqc_status || 'QUANTUM-RESISTANT') + ')';
+        document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
+        if (pqcScore <= 30) {
+            document.getElementById('rep-pqc-progress-fill').className = 'bg-red-500 h-full rounded-full';
+            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-red-600 text-sm';
+        } else if (pqcScore >= 80) {
+            document.getElementById('rep-pqc-progress-fill').className = 'bg-emerald-500 h-full rounded-full';
+            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-emerald-600 text-sm';
+        } else {
+            document.getElementById('rep-pqc-progress-fill').className = 'bg-amber-500 h-full rounded-full';
+            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-amber-600 text-sm';
+        }
     }
-    if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
-        document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
+
+    // Render Per-Tunnel / Per-SA Partitioned Table
+    var sas = data.security_associations || [];
+    var saContainer = document.getElementById('rep-multi-sa-container');
+    var saTbody = document.getElementById('rep-multi-sa-tbody');
+    var saPill = document.getElementById('rep-sa-count-pill');
+
+    if (saContainer && saTbody) {
+        if (sas.length > 0) {
+            saContainer.classList.remove('hidden');
+            if (saPill) saPill.textContent = sas.length + ' ACTIVE SA' + (sas.length > 1 ? 's' : '');
+            saTbody.innerHTML = '';
+            sas.forEach(function(sa) {
+                var isWeak = sa.pqc_score === 0 || (sa.inferred_cipher && (sa.inferred_cipher.indexOf('DES') !== -1 || sa.inferred_cipher.indexOf('Legacy') !== -1));
+                var pqcBadgeClass = isWeak ? 'bg-red-500/15 text-red-600 border border-red-500/30' : (sa.pqc_score >= 80 ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-700 border border-amber-500/30');
+                var tr = document.createElement('tr');
+                tr.className = 'hover:bg-surface-container transition-colors';
+                tr.innerHTML = '<td class="p-3 font-bold text-primary">' + (sa.spi || '0x00000000') + '</td>' +
+                    '<td class="p-3 text-on-surface">' + (sa.endpoints || 'Gateway') + '</td>' +
+                    '<td class="p-3 text-on-surface">' + (sa.packet_count || 0) + ' pkts (' + (sa.traffic_share_pct || 0) + '%)</td>' +
+                    '<td class="p-3 ' + (isWeak ? 'text-red-600 font-bold' : 'text-on-surface') + '">' + (sa.inferred_cipher || 'AES-GCM-256') + '</td>' +
+                    '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + pqcBadgeClass + '">' + (sa.pqc_score || 0) + '% Safe</span></td>' +
+                    '<td class="p-3 text-on-surface">' + ((sa.eta_profile && sa.eta_profile.application_category) ? sa.eta_profile.application_category : 'Standard Flow') + '</td>' +
+                    '<td class="p-3 ' + (sa.anti_replay && sa.anti_replay.duplicates > 0 ? 'text-red-600 font-bold' : 'text-emerald-700') + '">' + (sa.anti_replay ? sa.anti_replay.status : 'OK') + '</td>';
+                saTbody.appendChild(tr);
+            });
+        } else {
+            saContainer.classList.add('hidden');
+        }
     }
-    var pqcScore = pqc.pqc_score !== undefined ? pqc.pqc_score : 85;
-    document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + (pqc.pqc_status || 'QUANTUM-RESISTANT') + ')';
-    document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
 
     // Section 3 Matrix
     document.getElementById('rep-traffic-badge-count').textContent = 'Total Analyzed: ' + totalPkts.toLocaleString() + ' Frames';

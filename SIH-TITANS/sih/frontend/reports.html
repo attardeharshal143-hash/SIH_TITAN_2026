@@ -299,19 +299,19 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 my-2">
             <div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 text-center">
                 <span class="block text-[10px] uppercase text-outline font-semibold mb-1">Security Grade</span>
-                <span class="font-bold text-2xl text-secondary">A+</span>
+                <span id="dash-stat-grade" class="font-bold text-2xl text-secondary">-</span>
             </div>
             <div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 text-center">
                 <span class="block text-[10px] uppercase text-outline font-semibold mb-1">PQC Readiness</span>
-                <span class="font-bold text-2xl text-primary">85%</span>
+                <span id="dash-stat-pqc" class="font-bold text-2xl text-primary">-</span>
             </div>
             <div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 text-center">
                 <span class="block text-[10px] uppercase text-outline font-semibold mb-1">ESP Encryption</span>
-                <span class="font-bold text-2xl text-primary">100%</span>
+                <span id="dash-stat-esp" class="font-bold text-2xl text-primary">-</span>
             </div>
             <div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/20 text-center">
                 <span class="block text-[10px] uppercase text-outline font-semibold mb-1">Cleartext Leaks</span>
-                <span class="font-bold text-2xl text-secondary">0</span>
+                <span id="dash-stat-leaks" class="font-bold text-2xl text-secondary">-</span>
             </div>
         </div>
 
@@ -413,15 +413,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data && data.reports && data.reports.length > 0) {
                     if (countBadge) countBadge.textContent = data.reports.length + ' Reports';
                     renderReportsList(data.reports);
+                    updateBentoStats(data.reports[0]);
                 } else {
                     if (countBadge) countBadge.textContent = '0 Reports';
                     renderEmptyState();
+                    resetBentoStats();
                 }
             })
             .catch(function(err) {
                 console.warn('[TITAN] Could not load reports:', err);
                 renderEmptyState();
+                resetBentoStats();
             });
+    }
+
+    function updateBentoStats(latest) {
+        if (!latest) return;
+        var elGrade = document.getElementById('dash-stat-grade');
+        var elPqc = document.getElementById('dash-stat-pqc');
+        var elEsp = document.getElementById('dash-stat-esp');
+        var elLeaks = document.getElementById('dash-stat-leaks');
+
+        var g = (latest.security_grade || (latest.risk_level === 'LOW' ? 'A+' : 'B')).toUpperCase().trim();
+        if (elGrade) {
+            elGrade.textContent = g;
+            if (g === 'A+' || g === 'A') elGrade.className = 'font-bold text-2xl text-emerald-600';
+            else if (g === 'B') elGrade.className = 'font-bold text-2xl text-blue-600';
+            else if (g === 'C') elGrade.className = 'font-bold text-2xl text-amber-600';
+            else elGrade.className = 'font-bold text-2xl text-red-600';
+        }
+        if (elPqc) elPqc.textContent = (g === 'A+' || g === 'A') ? '85%' : (g === 'B' ? '0%' : '20%');
+        if (elEsp) elEsp.textContent = latest.packets_analyzed ? '100%' : '-';
+        if (elLeaks) elLeaks.textContent = (latest.risk_level === 'LOW') ? '0' : (latest.risk_score > 30 ? 'Leaked' : '0');
+    }
+
+    function resetBentoStats() {
+        var elGrade = document.getElementById('dash-stat-grade');
+        var elPqc = document.getElementById('dash-stat-pqc');
+        var elEsp = document.getElementById('dash-stat-esp');
+        var elLeaks = document.getElementById('dash-stat-leaks');
+        if (elGrade) elGrade.textContent = '-';
+        if (elPqc) elPqc.textContent = '-';
+        if (elEsp) elEsp.textContent = '-';
+        if (elLeaks) elLeaks.textContent = '-';
     }
 
     function renderEmptyState() {
@@ -439,9 +473,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         reports.forEach(function(rep) {
             var row = document.createElement('div');
-            var isLowRisk = rep.risk_level === 'LOW';
-            var badgeStyle = isLowRisk ? 'bg-secondary-container/40 text-secondary' : 'bg-error-container text-on-error-container';
-            var dotStyle = isLowRisk ? 'bg-secondary' : 'bg-error';
+            var g = (rep.security_grade || (rep.risk_level === 'LOW' ? 'A+' : 'C')).toUpperCase().trim();
+            var badgeStyle = 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/30';
+            var dotStyle = 'bg-emerald-600';
+            if (g === 'B') {
+                badgeStyle = 'bg-blue-500/10 text-blue-700 border border-blue-500/30';
+                dotStyle = 'bg-blue-600';
+            } else if (g === 'C') {
+                badgeStyle = 'bg-amber-500/15 text-amber-800 border border-amber-500/40';
+                dotStyle = 'bg-amber-600';
+            } else if (g === 'F') {
+                badgeStyle = 'bg-red-500/15 text-red-700 border border-red-500/40';
+                dotStyle = 'bg-red-600';
+            }
 
             var pdfUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + rep.report_id + '/pdf') : '/api/reports/' + rep.report_id + '/pdf';
             var jsonUrl = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + rep.report_id + '/download') : '/api/reports/' + rep.report_id + '/download';

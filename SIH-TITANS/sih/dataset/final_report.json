@@ -1,201 +1,289 @@
 {
-  "report_id": "REP-20260830075521-67cfee",
+  "report_id": "REP-20260901120547-c03065",
   "report_type": "Enterprise IPsec Security Audit & Compliance Report",
-  "report_name": "Audit Analysis - Live_Capture_Wi-Fi.pcap",
-  "pcap_file": "Live_Capture_Wi-Fi.pcap",
-  "generated_at": "2026-08-30T07:55:21.682085Z",
-  "generated_date_str": "Aug 30, 2026, 07:55 UTC",
+  "report_name": "Audit Analysis - synthetic_ipsec_multi_hazard.pcap",
+  "pcap_file": "synthetic_ipsec_multi_hazard.pcap",
+  "generated_at": "2026-09-01T12:05:47.512924Z",
+  "generated_date_str": "Sep 01, 2026, 12:05 UTC",
   "status": "Completed",
   "executive_summary": {
-    "security_grade": "A+",
-    "compliance_status": "COMPLIANT (Strong IPsec Security Posture)",
-    "risk_score": 10,
-    "risk_level": "LOW",
-    "summary_text": "Traffic trace Live_Capture_Wi-Fi.pcap was evaluated by the TITAN Inspection Engine. Security posture rated Grade A+ with a normalized risk index of 10/100."
+    "security_grade": "F",
+    "compliance_status": "NON-COMPLIANT (Cryptographic Downgrade in SA 0xdeadbeef)",
+    "risk_score": 100,
+    "risk_level": "HIGH",
+    "summary_text": "Traffic trace synthetic_ipsec_multi_hazard.pcap was evaluated by the TITAN Inspection Engine. Security posture rated Grade F with a normalized risk index of 100/100."
   },
   "traffic_summary": {
-    "packets_analyzed": 104,
-    "esp_packets": 104,
-    "ah_packets": 0,
-    "ike_candidates": 0,
-    "tcp_packets": 0,
+    "packets_analyzed": 310,
+    "esp_packets": 300,
+    "ah_packets": 1,
+    "ike_candidates": 4,
+    "tcp_packets": 4,
     "udp_packets": 0,
     "icmp_packets": 0,
-    "dns_packets": 0
+    "dns_packets": 1,
+    "active_security_associations": 2
   },
   "cryptographic_analysis": {
     "encryption_enforced": true,
     "authentication_only_ah": false,
-    "ike_negotiation_captured": false,
+    "ike_negotiation_captured": true,
     "distinct_spis": [
-      "0xc743e05b",
-      "0xcb68f974"
+      "0x7a7a7a7a",
+      "0xdeadbeef"
     ],
-    "spi_count": 2
+    "spi_count": 2,
+    "avg_entropy_bits": 7.4,
+    "status_text": "IPsec Encapsulation Active"
   },
   "leakage_assessment": {
-    "cleartext_packets": 0,
-    "leakage_percentage": 0.0,
-    "leaked_protocols": []
+    "is_vpn_leak": true,
+    "cleartext_packets": 5,
+    "leakage_percentage": 1.6,
+    "leaked_protocols": [
+      "HTTP Plaintext (1)",
+      "DNS (1)",
+      "Generic TCP (3)"
+    ]
   },
   "anti_replay_audit": {
-    "sequence_integrity": "VERIFIED",
-    "replay_risk": "LOW"
+    "sequence_integrity": "VULNERABLE (5 Duplicate Sequence Numbers Detected across SAs)",
+    "replay_risk": "HIGH",
+    "duplicate_sequences": 5
   },
   "mtu_fragmentation_audit": {
-    "avg_packet_size": 170,
-    "max_packet_size": 170,
+    "avg_packet_size": 672.0,
+    "max_packet_size": 1410,
     "fragmentation_risk": "LOW"
   },
   "encrypted_traffic_analysis": {
-    "application_category": "Interactive Shell / VoIP / Command Stream",
-    "traffic_pattern": "Low Latency / Fixed Size Frames",
-    "eta_confidence": 94.5,
-    "avg_packet_size_bytes": 170.0,
-    "packet_size_std_dev": 0.0,
-    "burstiness_index": 0.0,
-    "inferred_behavior": "Continuous stream of small, fixed-size encrypted frames indicative of interactive management sessions or voice-over-IP."
+    "application_category": "Adaptive Video Stream / Video Conferencing",
+    "traffic_pattern": "Variable Bitrate Multi-Frame Video Bursts (I/P Frame Cadence)",
+    "eta_confidence": 96.3,
+    "avg_packet_size_bytes": 690.5,
+    "packet_size_std_dev": 491.1,
+    "burstiness_index": 0.71,
+    "inferred_behavior": "Bimodal and burst-oriented packet distribution (burstiness index 0.71, std dev 491.1B) characteristic of compressed video streaming (I-frame bursts and P/B-frame deltas)."
   },
   "advanced_security_audit": {
-    "ike_psk_audit": {
-      "ike_version_detected": "Established / Pre-negotiated IKEv2",
-      "exchange_mode": "Main Mode / IKEv2 CREATE_CHILD_SA",
-      "psk_vulnerability_risk": "LOW (No IKEv1 Aggressive Mode Hash Exposure)",
-      "identity_protection": "ENCRYPTED (Identity concealed in IKE_AUTH)",
+    "ike_key_exchange_audit": {
+      "ike_version_detected": "IKEv2.0",
+      "exchange_mode": "Main Mode / IKE_SA_INIT (Secure)",
+      "psk_vulnerability_risk": "LOW (Encrypted Handshake)",
+      "identity_protection": "ENCRYPTED",
       "aggressive_mode_detected": false,
-      "details": "No IKEv1 Aggressive Mode cleartext hash exposures detected in capture stream."
+      "negotiated_encryption": "IDEA-CBC (128-bit)",
+      "negotiated_dh_group": "MODP-768 (Group 1)",
+      "negotiated_prf": "PRF_HMAC_MD5",
+      "details": "Parsed real IKE SA proposal: Encryption=IDEA-CBC-128, DH Group=MODP-768 (Group 1), PRF=PRF_HMAC_MD5."
     },
-    "cryptographic_downgrade_audit": {
-      "overall_status": "SECURE",
-      "checks": [
-        {
-          "check": "Obsolete Cipher Downgrade (DES / 3DES / RC4)",
-          "status": "SECURE",
-          "severity": "INFO",
-          "description": "No legacy 56-bit or 168-bit symmetric ciphers detected. ESP encapsulation active."
-        },
-        {
-          "check": "Cryptographic Hash Collision (MD5 / SHA-1)",
-          "status": "SECURE",
-          "severity": "INFO",
-          "description": "No deprecated MD5/SHA-1 truncated MAC headers identified in active ESP frames."
-        },
-        {
-          "check": "Diffie-Hellman Group Strength (Logjam Resistance)",
-          "status": "SECURE",
-          "severity": "INFO",
-          "description": "Key exchanges adhere to modern DH Group 14+ (2048-bit MODP) or ECP Group 19 (Curve25519)."
-        }
-      ]
-    },
+    "cryptographic_downgrade_checks": [
+      {
+        "check": "Obsolete Cipher Downgrade (DES / 3DES)",
+        "status": "SECURE",
+        "severity": "INFO",
+        "description": "Negotiated encryption cipher: IDEA-CBC (128-bit)."
+      },
+      {
+        "check": "Diffie-Hellman Group Strength (Logjam Resistance)",
+        "status": "VULNERABLE",
+        "severity": "HIGH",
+        "description": "Negotiated key exchange group: MODP-768 (Group 1) (768-bit)."
+      }
+    ],
     "pqc_readiness": {
-      "pqc_score": 85,
-      "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)",
-      "cnsa_2_0_compliant": true,
+      "pqc_score": 0,
+      "pqc_status": "QUANTUM-VULNERABLE (Downgrade in SA 0xdeadbeef)",
+      "quantum_resistance_index": "20%",
+      "harvest_now_decrypt_later_risk": "ELEVATED",
       "recommendations": [
-        "Payload uses high-entropy 256-bit ESP encapsulation, offering 128-bit security against Grover's quantum search algorithm.",
-        "To achieve 100% PQC compliance, implement RFC 9370 hybrid IKEv2 key exchanges incorporating ML-KEM (Kyber-768/1024) alongside classical ECDH."
+        "CRITICAL: Real IKE handshake negotiated weak parameters: IDEA-CBC (Key: 128b), DH: MODP-768 (Group 1).",
+        "Small MODP groups (Group 1/2/5) and legacy ciphers (DES/3DES) are vulnerable to both classical Logjam attacks and quantum Shor/Grover algorithms.",
+        "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519."
       ]
     },
     "mitre_attack_mapping": [
       {
-        "technique_id": "M1037",
-        "technique_name": "Filter Network Traffic",
-        "tactic": "Defensive Mitigation (Compliant)",
-        "severity": "INFO",
-        "finding_ref": "100% of traffic is encapsulated inside encrypted ESP tunnel with zero bypass leaks.",
-        "mitigation": "Current network security architecture adheres to defensive baselines."
+        "technique_id": "T1048.003",
+        "technique_name": "Exfiltration Over Alternative Protocol (Unencrypted Cleartext Leak)",
+        "tactic": "Exfiltration",
+        "severity": "HIGH",
+        "finding_ref": "5 unencrypted packets observed bypassing the active IPsec VPN tunnel.",
+        "mitigation": "Enforce strict gateway split-tunnel prevention policies so all enterprise traffic is routed through the IPsec ESP tunnel."
       }
     ],
     "siem_event": {
-      "event_timestamp": "2026-08-30T07:55:21.682686Z",
-      "vendor": "TITAN Security Intelligence",
-      "product": "IPsec VPN Analyzer",
-      "event_type": "AUDIT_TELEMETRY",
-      "security_grade": "A+",
-      "risk_score": 10,
-      "total_packets": 104,
-      "esp_packets": 104,
-      "leakage_packets": 0,
-      "mitre_technique_ids": [
-        "M1037"
-      ],
-      "pqc_score": 85,
-      "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
+      "event_schema": "Elastic Common Schema (ECS) v1.12",
+      "event_id": "EVT-20260901120547",
+      "event_type": "ipsec_security_audit",
+      "threat_level": "critical",
+      "compliance": "non_compliant",
+      "ipsec_active": true,
+      "active_spis": [
+        "0x7a7a7a7a",
+        "0xdeadbeef"
+      ]
     }
   },
+  "cipher_mode_inference": {
+    "operating_mode": "Tunnel Mode (Gateway-to-Gateway IP-in-IP Encapsulation)",
+    "inferred_cipher": "IDEA-CBC-128",
+    "integrity_algorithm": "AUTH_HMAC_MD5_96",
+    "mode_confidence": 98.0,
+    "cipher_confidence": 95.0,
+    "evidence": "Negotiated in IKE handshake: IDEA-CBC (128b), DH: MODP-768 (Group 1)."
+  },
   "pqc_readiness": {
-    "pqc_score": 85,
-    "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)",
-    "cnsa_2_0_compliant": true,
+    "pqc_score": 0,
+    "pqc_status": "QUANTUM-VULNERABLE (Downgrade in SA 0xdeadbeef)",
+    "quantum_resistance_index": "20%",
+    "harvest_now_decrypt_later_risk": "ELEVATED",
     "recommendations": [
-      "Payload uses high-entropy 256-bit ESP encapsulation, offering 128-bit security against Grover's quantum search algorithm.",
-      "To achieve 100% PQC compliance, implement RFC 9370 hybrid IKEv2 key exchanges incorporating ML-KEM (Kyber-768/1024) alongside classical ECDH."
+      "CRITICAL: Real IKE handshake negotiated weak parameters: IDEA-CBC (Key: 128b), DH: MODP-768 (Group 1).",
+      "Small MODP groups (Group 1/2/5) and legacy ciphers (DES/3DES) are vulnerable to both classical Logjam attacks and quantum Shor/Grover algorithms.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519."
     ]
   },
   "mitre_attack_mapping": [
     {
-      "technique_id": "M1037",
-      "technique_name": "Filter Network Traffic",
-      "tactic": "Defensive Mitigation (Compliant)",
-      "severity": "INFO",
-      "finding_ref": "100% of traffic is encapsulated inside encrypted ESP tunnel with zero bypass leaks.",
-      "mitigation": "Current network security architecture adheres to defensive baselines."
+      "technique_id": "T1048.003",
+      "technique_name": "Exfiltration Over Alternative Protocol (Unencrypted Cleartext Leak)",
+      "tactic": "Exfiltration",
+      "severity": "HIGH",
+      "finding_ref": "5 unencrypted packets observed bypassing the active IPsec VPN tunnel.",
+      "mitigation": "Enforce strict gateway split-tunnel prevention policies so all enterprise traffic is routed through the IPsec ESP tunnel."
     }
   ],
   "siem_event": {
-    "event_timestamp": "2026-08-30T07:55:21.682686Z",
-    "vendor": "TITAN Security Intelligence",
-    "product": "IPsec VPN Analyzer",
-    "event_type": "AUDIT_TELEMETRY",
-    "security_grade": "A+",
-    "risk_score": 10,
-    "total_packets": 104,
-    "esp_packets": 104,
-    "leakage_packets": 0,
-    "mitre_technique_ids": [
-      "M1037"
-    ],
-    "pqc_score": 85,
-    "pqc_status": "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
-  },
-  "endpoints": {
-    "source_ips": [
-      "10.10.10.1",
-      "10.10.10.2"
-    ],
-    "destination_ips": [
-      "10.10.10.1",
-      "10.10.10.2"
+    "event_schema": "Elastic Common Schema (ECS) v1.12",
+    "event_id": "EVT-20260901120547",
+    "event_type": "ipsec_security_audit",
+    "threat_level": "critical",
+    "compliance": "non_compliant",
+    "ipsec_active": true,
+    "active_spis": [
+      "0x7a7a7a7a",
+      "0xdeadbeef"
     ]
   },
+  "security_associations": [
+    {
+      "spi": "0xdeadbeef",
+      "endpoints": "10.10.10.5 <-> 198.51.100.20",
+      "protocol": "AH (Protocol 51)",
+      "packet_count": 1,
+      "traffic_share_pct": 0.3,
+      "operating_mode": "Transport Mode (Host-to-Host Payload Encapsulation)",
+      "inferred_cipher": "IDEA-CBC-128",
+      "integrity_algorithm": "AUTH_HMAC_MD5_96",
+      "pqc_score": 20,
+      "pqc_status": "QUANTUM-VULNERABLE (Downgrade: IDEA-CBC/MODP-768 (Group 1))",
+      "eta_profile": {
+        "application_category": "Standard TCP/UDP Network Communication",
+        "eta_confidence": 95.0,
+        "mean_packet_length": 124.0,
+        "length_std_dev": 0.0,
+        "burstiness_index": 0.0,
+        "traffic_pattern": "Unencapsulated Network Flow"
+      },
+      "anti_replay": {
+        "status": "VALID (1 packets tracked)",
+        "duplicates": 0
+      },
+      "ike_correlation": {
+        "matched": true,
+        "resolution_tier": "Tier 3: Endpoint IP Match (10.10.10.5)",
+        "negotiated_encryption": "IDEA-CBC",
+        "negotiated_dh_group": "MODP-768 (Group 1)"
+      }
+    },
+    {
+      "spi": "0x7a7a7a7a",
+      "endpoints": "10.10.10.5 <-> 198.51.100.20",
+      "protocol": "ESP (Protocol 50)",
+      "packet_count": 300,
+      "traffic_share_pct": 96.8,
+      "operating_mode": "Tunnel Mode (Gateway-to-Gateway IP-in-IP Encapsulation)",
+      "inferred_cipher": "IDEA-CBC-128",
+      "integrity_algorithm": "AUTH_HMAC_MD5_96",
+      "pqc_score": 20,
+      "pqc_status": "QUANTUM-VULNERABLE (Downgrade: IDEA-CBC/MODP-768 (Group 1))",
+      "eta_profile": {
+        "application_category": "Adaptive Video Stream / Video Conferencing",
+        "eta_confidence": 96.3,
+        "mean_packet_length": 690.5,
+        "length_std_dev": 491.1,
+        "burstiness_index": 0.71,
+        "traffic_pattern": "Variable Bitrate Multi-Frame Video Bursts (I/P Frame Cadence)"
+      },
+      "anti_replay": {
+        "status": "VULNERABLE (5 duplicate sequences)",
+        "duplicates": 5
+      },
+      "ike_correlation": {
+        "matched": true,
+        "resolution_tier": "Tier 3: Endpoint IP Match (10.10.10.5)",
+        "negotiated_encryption": "IDEA-CBC",
+        "negotiated_dh_group": "MODP-768 (Group 1)"
+      }
+    }
+  ],
+  "endpoints": {
+    "source_ips": [],
+    "destination_ips": []
+  },
   "protocols": [
-    "ESP"
+    "AH",
+    "DNS",
+    "ESP",
+    "IKE",
+    "TCP"
   ],
   "ml_analysis": {
     "model": "Random Forest Classifier",
-    "total_analyzed": 104,
-    "predicted_esp_packets": 104,
-    "predicted_non_esp_packets": 0,
-    "average_confidence": 100.0
+    "total_analyzed": 310,
+    "predicted_esp_packets": 305,
+    "predicted_non_esp_packets": 5,
+    "average_confidence": 99.8
   },
   "security_assessment": {
-    "security_grade": "A+",
-    "risk_score": 10,
-    "risk_level": "LOW",
+    "security_grade": "F",
+    "risk_score": 100,
+    "risk_level": "HIGH",
     "findings": [
-      "ESP Payload Encryption Verified: 104 encrypted frames (100.0% of capture).",
-      "Full Encapsulation: 100% of captured traffic is encapsulated within secure IPsec tunnel.",
-      "Established Tunnel Trace: IKE initial negotiation phase was completed prior to packet capture.",
-      "Zero Cleartext Leakage: No plaintext transport protocols were observed bypassing the VPN tunnel.",
-      "MTU Headroom Optimal: Average packet length is 170 bytes (Max: 170 bytes), avoiding fragmentation.",
-      "Anti-Replay Protection: Sequence tracking verified across 2 active Security Associations (SAs)."
+      "ESP Payload Encryption Verified: 300 encrypted frames (96.8% of capture, Mean Entropy: 7.4 bits/byte).",
+      "Active Security Association SPIs: 0x7a7a7a7a, 0xdeadbeef.",
+      "IKE Handshake Observed: 4 key exchange negotiation packets detected on UDP 500/4500.",
+      "Authentication Header (AH) Active: 1 packets use Protocol 51. (Note: AH provides integrity but NO data encryption).",
+      "CRITICAL: Anti-Replay Alert - 5 duplicate ESP sequence numbers detected.",
+      "CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite IDEA-CBC (128b) / MODP-768 (Group 1).",
+      "CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite IDEA-CBC (128b) / MODP-768 (Group 1).",
+      "CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite IDEA-CBC (128b) / MODP-768 (Group 1).",
+      "CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite IDEA-CBC (128b) / MODP-768 (Group 1).",
+      "Split-Tunneling / Plaintext Leakage: 5 unencrypted packets (1.6%) observed outside the active IPsec tunnel."
     ],
     "remediations": [
-      "Maintain current cryptographic parameters and schedule regular re-keying intervals (e.g. every 8-24 hours)."
+      "Migrate from AH (Protocol 51) to ESP (Protocol 50) with AES-GCM-256 for full confidentiality.",
+      "Verify Anti-Replay window synchronization on gateway to prevent packet injection attacks.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Enforce strict split-tunnel prevention policies so all enterprise traffic is routed through the IPsec ESP tunnel."
     ],
     "remediation_guidance": [
-      "Maintain current cryptographic parameters and schedule regular re-keying intervals (e.g. every 8-24 hours)."
+      "Migrate from AH (Protocol 51) to ESP (Protocol 50) with AES-GCM-256 for full confidentiality.",
+      "Verify Anti-Replay window synchronization on gateway to prevent packet injection attacks.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.",
+      "Enforce strict split-tunnel prevention policies so all enterprise traffic is routed through the IPsec ESP tunnel."
     ]
+  },
+  "remediation_scripts": {
+    "strongswan_swanctl_conf": "# =========================================================================\n# TITAN AUTO-GENERATED HARDEINED STRONGSWAN CONFIGURATION (swanctl.conf)\n# Standards: NIST SP 800-77 & NSA CNSA 2.0 Post-Quantum Readiness\n# =========================================================================\n\nconnections {\n    titan-hardened-tunnel {\n        local_addrs  = %defaultroute\n        remote_addrs = 198.51.100.1\n\n        local {\n            auth = pubkey\n            certs = titanGatewayCert.pem\n            id = vpn.enterprise.internal\n        }\n        remote {\n            auth = pubkey\n            id = peer.enterprise.internal\n        }\n\n        children {\n            titan-vpn-child {\n                local_ts  = 10.0.0.0/16\n                remote_ts = 172.16.0.0/16\n                \n                # Enforce High-Assurance AES-256-GCM AEAD (No weak 3DES/MD5)\n                esp_proposals = aes256gcm16-prfsha384-ecp384-modp2048!\n                \n                # Strict RFC 4301 Tunnel Mode & Monotonic Anti-Replay\n                mode = tunnel\n                rekey_time = 3600s\n                rekey_bytes = 10000000000\n                dpd_action = restart\n            }\n        }\n\n        # IKEv2 Key Exchange with Post-Quantum Hybrid ML-KEM / Curve25519\n        version = 2\n        proposals = aes256gcm16-prfsha384-ecp384-curve25519-modp2048!\n        encap = no\n    }\n}",
+    "cisco_ios_xe_cli": "! =========================================================================\n! TITAN AUTO-GENERATED CISCO IOS-XE / ASA HARDENING CLI SCRIPT\n! Hardens Phase 1 (IKEv2) & Phase 2 (ESP AES-GCM-256 AEAD)\n! =========================================================================\n\n! 1. Define IKEv2 Hardened Proposal\ncrypto ikev2 proposal TITAN-PQC-PROPOSAL\n encryption aes-gcm-256\n prf sha384\n group 19 20 14\n exit\n\n! 2. Define IKEv2 Policy\ncrypto ikev2 policy TITAN-IKEV2-POLICY\n match fvrf any\n proposal TITAN-PQC-PROPOSAL\n exit\n\n! 3. Enforce Strict AEAD IPsec Transform Set (Phase 2)\ncrypto ipsec transform-set TITAN-AES-GCM esp-gcm 256\n mode tunnel\n exit\n\n! 4. Enforce Anti-Replay Window (128-Packet Bitmap) & PFS Group 19\ncrypto ipsec profile TITAN-IPSEC-PROFILE\n set transform-set TITAN-AES-GCM\n set pfs group19\n set security-association replay window-size 128\n set security-association lifetime seconds 3600\n exit\n\n! 5. Apply to Virtual Tunnel Interface (VTI)\ninterface Tunnel100\n ip address 10.255.255.1 255.255.255.252\n tunnel source GigabitEthernet0/0/0\n tunnel mode ipsec ipv4\n tunnel destination 198.51.100.1\n tunnel protection ipsec profile TITAN-IPSEC-PROFILE\n no ip redirects\n exit",
+    "fortinet_fortigate_cli": "# =========================================================================\n# TITAN AUTO-GENERATED FORTINET FORTIGATE IPSEC CONFIGURATION\n# Enforces AES-GCM-256 AEAD, Anti-Replay & Auto-ASIC Offload\n# =========================================================================\n\nconfig vpn ipsec phase1-interface\n    edit \"TITAN_VPN_P1\"\n        set interface \"port1\"\n        set ike-version 2\n        set keylife 28800\n        set peertype any\n        set proposal aes256gcm-prfsha384 aes256-sha384\n        set dhgrp 19 14\n        set remote-gw 198.51.100.1\n        set psksecret ENC XXXXXX\n        set auto-discovery-receiver enable\n    next\nend\n\nconfig vpn ipsec phase2-interface\n    edit \"TITAN_VPN_P2\"\n        set phase1name \"TITAN_VPN_P1\"\n        set proposal aes256gcm\n        set dhgrp 19 14\n        set replay enable\n        set auto-negotiate enable\n        set keylifeseconds 3600\n        set src-subnet 10.0.0.0 255.255.0.0\n        set dst-subnet 172.16.0.0 255.255.0.0\n    next\nend"
   }
 }
