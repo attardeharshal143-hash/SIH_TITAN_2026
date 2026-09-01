@@ -1,5 +1,6 @@
 import json
 import uuid
+from pathlib import Path
 from datetime import datetime
 from analyzer.cipher_mode_infer import infer_ipsec_cipher_and_mode
 from analyzer.eta_fingerprint import perform_encrypted_traffic_analysis
