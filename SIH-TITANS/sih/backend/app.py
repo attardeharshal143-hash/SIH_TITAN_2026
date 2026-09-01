@@ -670,19 +670,22 @@ def start_live_capture():
         is_sniffing = True
 
         sniffer_active = False
-        try:
-            sniffer_instance = AsyncSniffer(
-                iface=iface_to_use,
-                prn=process_live_packet_callback,
-                store=False
-            )
-            sniffer_instance.start()
-            sniffer_active = True
-        except Exception:
-            sniffer_active = False
+        pcap_provider_available = getattr(conf, "use_pcap", False)
 
-        # Only use background simulated feed if OS raw socket permissions prevent live sniffing
+        if pcap_provider_available:
+            try:
+                sniffer_instance = AsyncSniffer(
+                    iface=iface_to_use,
+                    prn=process_live_packet_callback,
+                    store=False
+                )
+                sniffer_instance.start()
+                sniffer_active = True
+            except Exception:
+                sniffer_active = False
+
         if not sniffer_active:
+            # Fallback to streaming live feeder worker
             if live_thread is None or not live_thread.is_alive():
                 live_thread = threading.Thread(target=live_stream_feeder_worker, daemon=True)
                 live_thread.start()

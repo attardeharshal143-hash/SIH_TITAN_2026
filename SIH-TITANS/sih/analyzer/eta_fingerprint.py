@@ -3,9 +3,9 @@ import numpy as np
 def perform_encrypted_traffic_analysis(features):
     """
     Empirical Packet Length & Distribution Profiler.
-    Reports strictly measurable packet dimensions (mean, standard deviation, min, max, burstiness)
-    without asserting fabricated application-layer identities or fake confidence percentages
-    on encrypted ESP ciphertext payloads.
+    Reports strictly measurable packet dimensions without asserting fabricated
+    application identities. Accurately flags small sample sizes (N < 5 frames) where
+    statistical moments cannot be meaningfully computed.
     """
     if not features:
         return {
@@ -25,7 +25,7 @@ def perform_encrypted_traffic_analysis(features):
     dns_features = [f for f in features if f.get("dns")]
 
     # -------------------------------------------------------------------------
-    # CASE 1: UNENCRYPTED / NON-IPSEC TRAFFIC (Direct Protocol Identification)
+    # CASE 1: UNENCRYPTED / NON-IPSEC TRAFFIC
     # -------------------------------------------------------------------------
     if len(esp_features) == 0:
         lengths = [f.get("packet_length", 0) for f in features if f.get("packet_length", 0) > 0]
@@ -85,7 +85,7 @@ def perform_encrypted_traffic_analysis(features):
             }
 
     # -------------------------------------------------------------------------
-    # CASE 2: ESP ENCRYPTED TRAFFIC (Honest Packet Length Profiling)
+    # CASE 2: ESP ENCRYPTED TRAFFIC
     # -------------------------------------------------------------------------
     lengths = [f.get("packet_length", 0) for f in esp_features if f.get("packet_length", 0) > 0]
     if not lengths:
@@ -98,6 +98,19 @@ def perform_encrypted_traffic_analysis(features):
     max_len = int(np.max(arr))
     min_len = int(np.min(arr))
     burst_idx = round(float(std_len / (avg_len + 1e-5)), 2)
+
+    # Handle Small Sample Size (N < 5)
+    if total_pkts < 5:
+        lengths_str = ", ".join(str(l) for l in lengths)
+        return {
+            "application_category": f"Insufficient Sample Size (N = {total_pkts} ESP frame{'s' if total_pkts > 1 else ''})",
+            "traffic_pattern": f"N < 5 (Observed lengths: {lengths_str} B)",
+            "eta_confidence": None,
+            "avg_packet_size_bytes": round(avg_len, 1),
+            "packet_size_std_dev": round(std_len, 1),
+            "burstiness_index": burst_idx,
+            "inferred_behavior": f"Capture contains only {total_pkts} ESP frame(s) (lengths: {lengths_str} B). Meaningful statistical distribution analysis and burstiness metrics require a multi-packet sample window (>= 5 frames)."
+        }
 
     small_pkts = np.sum(arr < 250)
     medium_pkts = np.sum((arr >= 250) & (arr < 1100))

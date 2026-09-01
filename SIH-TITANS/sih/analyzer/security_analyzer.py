@@ -2,7 +2,7 @@ def analyze_ipsec_security(features, ike_map=None):
     """
     Performs empirical, mathematically grounded security and compliance analysis.
     Evaluates real Shannon entropy, Anti-Replay monotonicity, cryptographic downgrade attacks,
-    and unencrypted transport exposures without speculative claims.
+    and unencrypted transport exposures with published mathematical risk breakdowns.
     """
     total = len(features)
     if total == 0:
@@ -59,19 +59,23 @@ def analyze_ipsec_security(features, ike_map=None):
     if duplicates > 0:
         anti_replay_status = f"VULNERABLE ({duplicates} Duplicate Sequence Numbers Detected across SAs)"
         replay_risk = "CRITICAL"
-    elif is_monotonic and total_tracked_seqs > 0:
+    elif total_tracked_seqs == 1:
+        single_seq = list(spis_seq_map.values())[0][0] if spis_seq_map else 1
+        anti_replay_status = f"Single Packet Observed (Seq #{single_seq} - Sequence window tracking requires >= 2 frames)"
+        replay_risk = "LOW"
+    elif is_monotonic and total_tracked_seqs > 1:
         anti_replay_status = f"SYNCHRONIZED (Strictly Monotonic Sequence 1..{total_tracked_seqs} verified across {len(spis_seq_map)} SAs, 0 replays)"
         replay_risk = "LOW"
-    elif total_tracked_seqs > 0:
+    elif total_tracked_seqs > 1:
         anti_replay_status = f"VALID (Packets within window across {len(spis_seq_map)} SAs)"
         replay_risk = "LOW"
     else:
         anti_replay_status = "N/A (No ESP Sequence Headers)"
         replay_risk = "NONE"
 
-    # 3. Real Shannon Entropy Averages
+    # 3. Real Shannon Entropy Averages (Computed strictly on isolated ESP ciphertext payloads)
     esp_entropies = [f.get("shannon_entropy", 0.0) for f in esp_packets]
-    avg_esp_entropy = round(sum(esp_entropies) / len(esp_entropies), 2) if esp_entropies else 0.0
+    avg_esp_entropy = round(sum(esp_entropies) / len(esp_entropies), 3) if esp_entropies else 0.0
 
     # Summarize observed application protocols
     observed_protocols = []
@@ -88,6 +92,7 @@ def analyze_ipsec_security(features, ike_map=None):
 
     findings = []
     remediations = []
+    risk_breakdown = [{"factor": "Base Evaluated Risk", "points": 10, "reason": "Baseline network telemetry monitoring"}]
 
     # =========================================================================
     # CASE 1: UNENCRYPTED / NON-IPSEC NETWORK TRAFFIC (Zero VPN Encapsulation)
@@ -98,6 +103,7 @@ def analyze_ipsec_security(features, ike_map=None):
             security_grade = "F"
             compliance_status = "NON-COMPLIANT (Zero IPsec Encapsulation - Unencrypted Cleartext Exposed)"
             risk_level = "CRITICAL"
+            risk_breakdown.append({"factor": "Unencrypted Web / Plaintext HTTP", "points": 80, "reason": f"{len(http_packets)} plain HTTP packets on Port 80 without encryption"})
 
             findings.append(f"CRITICAL: Zero IPsec Encapsulation Detected ({total} frames analyzed in cleartext).")
             findings.append(f"Observed Cleartext Protocols: {', '.join(observed_protocols)}.")
@@ -117,6 +123,7 @@ def analyze_ipsec_security(features, ike_map=None):
             "compliance_status": compliance_status,
             "risk_score": risk_score,
             "risk_level": risk_level,
+            "risk_score_breakdown": risk_breakdown,
             "ipsec_tunnel_detected": False,
             "cryptographic_posture": {
                 "encryption_enforced": False,
@@ -153,7 +160,7 @@ def analyze_ipsec_security(features, ike_map=None):
     risk_score = 10
     
     if esp_count > 0:
-        findings.append(f"ESP Encapsulation: {esp_count} frames ({round(esp_count/total*100, 1)}% of capture, Mean Byte Shannon Entropy: {avg_esp_entropy} bits/byte).")
+        findings.append(f"ESP Encapsulation: {esp_count} frame{'s' if esp_count > 1 else ''} ({round(esp_count/total*100, 1)}% of capture, Mean Byte Shannon Entropy: {avg_esp_entropy} bits/byte).")
         if non_ipsec_count == 0:
             findings.append("Full Encapsulation: 100% of captured traffic is encapsulated within secure IPsec tunnel.")
         else:
@@ -167,8 +174,10 @@ def analyze_ipsec_security(features, ike_map=None):
     elif esp_count > 0:
         findings.append("Established Tunnel Trace: Initial IKE negotiation was completed prior to this capture window.")
 
+    # AH Check
     if ah_count > 0:
         risk_score += 30
+        risk_breakdown.append({"factor": "Authentication Header AH (Protocol 51)", "points": 30, "reason": "AH provides integrity but NO data encryption / confidentiality (RFC 4302)"})
         findings.append(f"Authentication Header (AH) Active: {ah_count} packets use Protocol 51. (Note: AH provides integrity but NO data encryption).")
         remediations.append("Migrate from AH (Protocol 51) to ESP (Protocol 50) with AES-GCM-256 for full confidentiality.")
 
@@ -178,11 +187,22 @@ def analyze_ipsec_security(features, ike_map=None):
         if duplicates >= 3 or (duplicates / max(esp_count, 1)) >= 0.15:
             is_active_replay = True
             risk_score = max(risk_score + 80, 85)
+            risk_breakdown.append({"factor": "Active Anti-Replay Attack", "points": 80, "reason": f"{duplicates} duplicate ESP sequence numbers violate RFC 4301 anti-replay window"})
             findings.append(f"CRITICAL: Active Replay Attack Detected: {duplicates} duplicate ESP sequence numbers detected ({round(duplicates/esp_count*100, 1)}% of ESP stream). RFC 4301 anti-replay window violated.")
             remediations.append("Enforce strict Anti-Replay window checking (RFC 4303 64/128-packet window) and discard replayed/out-of-window sequence packets at VPN gateway.")
         else:
             risk_score += 15
+            risk_breakdown.append({"factor": "Anti-Replay Anomaly", "points": 15, "reason": f"{duplicates} duplicate sequence numbers detected"})
             findings.append(f"Anti-Replay Notice: {duplicates} duplicate sequence numbers detected.")
+
+    # Low Entropy / Zero-Byte Payload Failure in ESP Check
+    has_entropy_failure = False
+    if esp_count > 0 and avg_esp_entropy < 5.5:
+        has_entropy_failure = True
+        risk_score = max(risk_score + 75, 95)
+        risk_breakdown.append({"factor": "Zero-Entropy / Unencrypted ESP Payload", "points": 75, "reason": f"ESP payload exhibits {avg_esp_entropy} b/B entropy (below 5.5 b/B threshold), indicating unencrypted or zero-byte placeholder data"})
+        findings.append(f"CRITICAL: Zero-Entropy ESP Payload Detected ({avg_esp_entropy} bits/byte < 5.5 b/B threshold). Payload consists of unencrypted or repeating zero-byte placeholder data (0.0 b/B entropy), indicating cryptographic encryption is inactive.")
+        remediations.append("Verify IPsec cryptographic accelerator / kernel module (esp4 / aesni_intel / gcm) is actively encrypting outgoing packets rather than transmitting null/unencrypted bytes.")
 
     # Check for any weak cipher / DH group negotiation across all unique parsed IKE proposals
     has_crypto_downgrade = False
@@ -204,16 +224,19 @@ def analyze_ipsec_security(features, ike_map=None):
 
             if "DES" in encr or "3DES" in encr or "IDEA" in encr or key_bits < 128 or (dh_bits < 2048 and "Curve" not in dh and "ML-KEM" not in dh and "Kyber" not in dh):
                 has_crypto_downgrade = True
+                risk_breakdown.append({"factor": f"Cryptographic Downgrade ({encr} / {dh})", "points": 65, "reason": "Observed weak cipher suite vulnerable to cryptanalysis / quantum factorization"})
                 findings.append(f"CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite {encr} ({key_bits}b) / {dh}.")
                 remediations.append(f"Upgrade Phase 1 and Phase 2 proposals to replace weak suite {encr} / {dh} with AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.")
 
     if has_crypto_downgrade:
         risk_score = max(risk_score + 65, 75)
 
-    if is_active_replay or (has_crypto_downgrade and risk_score > 75):
+    if is_active_replay or has_entropy_failure or (has_crypto_downgrade and risk_score > 75):
         security_grade = "F"
         if is_active_replay:
             compliance_status = f"NON-COMPLIANT (Active Replay Attack: {duplicates} Duplicates)"
+        elif has_entropy_failure:
+            compliance_status = f"NON-COMPLIANT (Zero-Entropy Payload Failure: {avg_esp_entropy} b/B)"
         else:
             compliance_status = "CRITICAL NON-COMPLIANCE"
         risk_level = "CRITICAL"
@@ -248,6 +271,7 @@ def analyze_ipsec_security(features, ike_map=None):
         "compliance_status": compliance_status,
         "risk_score": min(100, risk_score),
         "risk_level": risk_level,
+        "risk_score_breakdown": risk_breakdown,
         "ipsec_tunnel_detected": True,
         "cryptographic_posture": {
             "encryption_enforced": esp_count > 0,

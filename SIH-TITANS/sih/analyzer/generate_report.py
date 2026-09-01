@@ -112,7 +112,8 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             "risk_level": r_level,
             "findings": assessment.get("findings", []),
             "remediations": assessment.get("remediations", []),
-            "remediation_guidance": assessment.get("remediations", [])
+            "remediation_guidance": assessment.get("remediations", []),
+            "risk_score_breakdown": assessment.get("risk_score_breakdown", [])
         }
     }
 
