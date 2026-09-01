@@ -1,17 +1,9 @@
 import json
-import sys
 import uuid
 from datetime import datetime
-from pathlib import Path
-
-# Ensure project root is in sys.path
-BASE_DIR = Path(__file__).resolve().parent.parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
-
+from analyzer.cipher_mode_infer import infer_ipsec_cipher_and_mode
 from analyzer.eta_fingerprint import perform_encrypted_traffic_analysis
 from analyzer.advanced_security_auditor import perform_advanced_security_audit
-from analyzer.cipher_mode_infer import infer_ipsec_cipher_and_mode
 from analyzer.remediation_generator import generate_remediation_scripts
 from analyzer.tunnel_partitioner import partition_and_audit_tunnels
 from analyzer.ike_dissector import extract_all_ike_negotiations
@@ -20,17 +12,37 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     now = datetime.utcnow()
     report_id = f"REP-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
     
-    unique_src_ips = sorted(list(set(x["ip_src"] for x in features if x.get("ip_src"))))
-    unique_dst_ips = sorted(list(set(x["ip_dst"] for x in features if x.get("ip_dst"))))
+    unique_src_ips = sorted(list(set(x["src_ip"] for x in features if x.get("src_ip"))))
+    unique_dst_ips = sorted(list(set(x["dst_ip"] for x in features if x.get("dst_ip"))))
     unique_protocols = sorted(list(set(x["transport_protocol"] for x in features if x.get("transport_protocol"))))
 
-    esp_count = sum(1 for x in features if x.get("esp"))
-    ah_count = sum(1 for x in features if x.get("ah"))
-    ike_count = sum(1 for x in features if x.get("ike_candidate"))
-    tcp_count = sum(1 for x in features if x.get("transport_protocol") == "TCP")
-    udp_count = sum(1 for x in features if x.get("transport_protocol") == "UDP")
-    icmp_count = sum(1 for x in features if x.get("icmp"))
-    dns_count = sum(1 for x in features if x.get("dns"))
+    # Mutually Exclusive Protocol Partitioning (Every frame counted exactly once - Zero Double Counting)
+    esp_count = 0
+    ah_count = 0
+    ike_count = 0
+    dns_count = 0
+    other_udp_count = 0
+    tcp_count = 0
+    icmp_count = 0
+    other_count = 0
+
+    for x in features:
+        if x.get("esp"):
+            esp_count += 1
+        elif x.get("ah"):
+            ah_count += 1
+        elif x.get("ike_candidate") or (x.get("transport_protocol") == "UDP" and (x.get("src_port") in (500, 4500) or x.get("dst_port") in (500, 4500))):
+            ike_count += 1
+        elif x.get("dns") or (x.get("transport_protocol") == "UDP" and (x.get("src_port") == 53 or x.get("dst_port") == 53)):
+            dns_count += 1
+        elif x.get("transport_protocol") == "UDP":
+            other_udp_count += 1
+        elif x.get("transport_protocol") == "TCP":
+            tcp_count += 1
+        elif x.get("icmp") or x.get("transport_protocol") == "ICMP":
+            icmp_count += 1
+        else:
+            other_count += 1
 
     # 1. Global ETA Fingerprinting
     eta_result = perform_encrypted_traffic_analysis(features)
@@ -83,10 +95,13 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             "esp_packets": esp_count,
             "ah_packets": ah_count,
             "ike_candidates": ike_count,
-            "tcp_packets": tcp_count,
-            "udp_packets": udp_count,
-            "icmp_packets": icmp_count,
             "dns_packets": dns_count,
+            "udp_packets": other_udp_count,
+            "other_udp_packets": other_udp_count,
+            "total_udp_all": ike_count + dns_count + other_udp_count,
+            "tcp_packets": tcp_count,
+            "icmp_packets": icmp_count,
+            "other_packets": other_count,
             "active_security_associations": len(sa_audits)
         },
         "cryptographic_analysis": assessment.get("cryptographic_posture", {}),
@@ -120,11 +135,11 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     # Generate automated hardening remediation scripts
     report["remediation_scripts"] = generate_remediation_scripts(report)
 
-    if reports_dir is not None:
+    if reports_dir:
         reports_dir = Path(reports_dir)
         reports_dir.mkdir(parents=True, exist_ok=True)
-        report_path = reports_dir / f"{report_id}.json"
-        with open(report_path, "w", encoding="utf-8") as f:
+        rep_file = reports_dir / f"{report_id}.json"
+        with open(rep_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
 
     return report

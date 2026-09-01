@@ -201,10 +201,13 @@ def create_pdf_report(report_data, output_pdf_path):
     add_table_row("ESP Payload Encryption (Protocol 50)", esp_pkts, True)
     add_table_row("Authentication Header AH (Protocol 51)", ah_pkts, False)
     add_table_row("IKE / NAT-T (UDP Port 500 / 4500)", ike_pkts, False)
+    add_table_row("DNS Resolution Queries (UDP Port 53)", dns_pkts, False)
+    add_table_row("Other UDP Datagrams (Non-VPN / Transport)", udp_pkts, False)
     add_table_row("TCP Transport Streams", tcp_pkts, False)
-    add_table_row("UDP Datagrams (Non-VPN)", udp_pkts, False)
-    add_table_row("DNS Resolution Queries", dns_pkts, False)
     add_table_row("ICMP Diagnostic Messages", icmp_pkts, False)
+    other_pkts = summary.get("other_packets", 0)
+    if other_pkts > 0:
+        add_table_row("Other Protocols", other_pkts, False)
 
     pdf.set_font("Helvetica", "B", 8.5)
     pdf.set_x(10)

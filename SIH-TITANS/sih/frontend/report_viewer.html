@@ -675,15 +675,24 @@ function renderAll7Sections(data) {
     var matrixBody = document.getElementById('rep-protocol-matrix-body');
     if (matrixBody) {
         matrixBody.innerHTML = '';
+        var otherUdp = (summary.other_udp_packets !== undefined) ? summary.other_udp_packets : (summary.udp_packets || 0);
+        var dnsPkts = summary.dns_packets || 0;
+        var tcpPkts = summary.tcp_packets || 0;
+        var icmpPkts = summary.icmp_packets || 0;
+        var otherPkts = summary.other_packets || 0;
+
         var rows = [
             { name: 'ESP Payload Encryption (Protocol 50)', count: espPkts, secure: true },
             { name: 'Authentication Header AH (Protocol 51)', count: ahPkts, secure: false },
             { name: 'IKE / NAT-T (UDP Port 500 / 4500)', count: ikePkts, secure: false },
-            { name: 'TCP Transport Streams', count: summary.tcp_packets || 0, secure: false },
-            { name: 'UDP Datagrams (Non-VPN)', count: summary.udp_packets || 0, secure: false },
-            { name: 'DNS Resolution Queries', count: summary.dns_packets || 0, secure: false },
-            { name: 'ICMP Diagnostic Messages', count: summary.icmp_packets || 0, secure: false }
+            { name: 'DNS Resolution Queries (UDP Port 53)', count: dnsPkts, secure: false },
+            { name: 'Other UDP Datagrams (Non-VPN / Transport)', count: otherUdp, secure: false },
+            { name: 'TCP Transport Streams', count: tcpPkts, secure: false },
+            { name: 'ICMP Diagnostic Messages', count: icmpPkts, secure: false }
         ];
+        if (otherPkts > 0) {
+            rows.push({ name: 'Other Protocols', count: otherPkts, secure: false });
+        }
         rows.forEach(function(r) {
             var tr = document.createElement('tr');
             var pct = totalPkts > 0 ? ((r.count / totalPkts) * 100).toFixed(1) + '%' : '0.0%';
