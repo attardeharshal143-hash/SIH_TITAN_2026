@@ -1,48 +1,25 @@
-import json
-import sys
-from pathlib import Path
-
-def assess_security(features, ike_map=None):
+def analyze_ipsec_security(features, ike_map=None):
+    """
+    Performs empirical, mathematically grounded security and compliance analysis.
+    Evaluates real Shannon entropy, Anti-Replay monotonicity, cryptographic downgrade attacks,
+    and unencrypted transport exposures without speculative claims.
+    """
     total = len(features)
     if total == 0:
         return {
             "packets_analyzed": 0,
             "security_grade": "N/A",
-            "compliance_status": "NO TRAFFIC (Empty Capture)",
+            "compliance_status": "NO_DATA",
             "risk_score": 0,
             "risk_level": "INFO",
             "ipsec_tunnel_detected": False,
-            "cryptographic_posture": {
-                "encryption_enforced": False,
-                "authentication_only_ah": False,
-                "ike_negotiation_captured": False,
-                "distinct_spis": [],
-                "spi_count": 0,
-                "status_text": "No network packets found in capture file."
-            },
-            "leakage_assessment": {
-                "is_vpn_leak": False,
-                "cleartext_packets": 0,
-                "leakage_percentage": 0.0,
-                "leaked_protocols": []
-            },
-            "anti_replay_audit": {
-                "sequence_integrity": "N/A",
-                "replay_risk": "NONE"
-            },
-            "mtu_fragmentation_audit": {
-                "avg_packet_size": 0,
-                "max_packet_size": 0,
-                "fragmentation_risk": "LOW"
-            },
-            "findings": ["No network packets found in capture file."],
-            "remediations": ["Verify network capture file integrity and re-upload."]
+            "findings": ["No packets found in PCAP trace."],
+            "remediations": []
         }
 
     esp_packets = [f for f in features if f.get("esp")]
     ah_packets = [f for f in features if f.get("ah")]
     ike_packets = [f for f in features if f.get("ike_candidate")]
-    
     http_packets = [f for f in features if f.get("http")]
     tls_packets = [f for f in features if f.get("tls")]
     ssh_packets = [f for f in features if f.get("ssh")]
@@ -81,7 +58,7 @@ def assess_security(features, ike_map=None):
 
     if duplicates > 0:
         anti_replay_status = f"VULNERABLE ({duplicates} Duplicate Sequence Numbers Detected across SAs)"
-        replay_risk = "HIGH"
+        replay_risk = "CRITICAL"
     elif is_monotonic and total_tracked_seqs > 0:
         anti_replay_status = f"SYNCHRONIZED (Strictly Monotonic Sequence 1..{total_tracked_seqs} verified across {len(spis_seq_map)} SAs, 0 replays)"
         replay_risk = "LOW"
@@ -113,23 +90,26 @@ def assess_security(features, ike_map=None):
     remediations = []
 
     # =========================================================================
-    # CASE 1: NON-IPSEC / STANDARD NETWORK TRAFFIC (Zero VPN protocols)
+    # CASE 1: UNENCRYPTED / NON-IPSEC NETWORK TRAFFIC (Zero VPN Encapsulation)
     # =========================================================================
     if not ipsec_detected:
-        risk_score = 15 if len(http_packets) > 0 else 10
-        security_grade = "B"
-        compliance_status = "NON-IPSEC TRAFFIC (Standard Application Stream)"
-        risk_level = "LOW (Standard Non-VPN Traffic)"
-
-        findings.append(f"Standard non-VPN network traffic evaluated ({total} frames analyzed).")
-        findings.append(f"Observed Application Protocols: {', '.join(observed_protocols)}.")
-        findings.append("No IPsec ESP (Protocol 50), AH (Protocol 51), or IKE key exchanges were observed in this capture stream.")
-        
         if len(http_packets) > 0:
-            findings.append(f"Cleartext Web Communication: {len(http_packets)} plain HTTP packets detected (Port 80 / Unencrypted GET/POST).")
-            remediations.append("Migrate plain HTTP web endpoints to TLS/HTTPS (Port 443) or encapsulate across a site-to-site IPsec VPN tunnel.")
+            risk_score = 90
+            security_grade = "F"
+            compliance_status = "NON-COMPLIANT (Zero IPsec Encapsulation - Unencrypted Cleartext Exposed)"
+            risk_level = "CRITICAL"
+
+            findings.append(f"CRITICAL: Zero IPsec Encapsulation Detected ({total} frames analyzed in cleartext).")
+            findings.append(f"Observed Cleartext Protocols: {', '.join(observed_protocols)}.")
+            findings.append(f"Cleartext Web Exposure: {len(http_packets)} plain HTTP packets detected (Port 80 / Unencrypted Credentials/API Payload).")
+            remediations.append("Enforce site-to-site IPsec VPN tunnel with AES-GCM-256 to encapsulate all cleartext web and API communications.")
         else:
-            remediations.append("If this traffic was intended to transit a secure IPsec tunnel, configure gateway firewall policies to enforce ESP encapsulation.")
+            risk_score = 10
+            security_grade = "A+"
+            compliance_status = "COMPLIANT (Standard Non-VPN Baseline)"
+            risk_level = "LOW"
+            findings.append(f"Standard non-VPN network communication stream ({total} frames analyzed).")
+            findings.append(f"Observed Protocols: {', '.join(observed_protocols)}.")
 
         return {
             "packets_analyzed": total,
@@ -152,7 +132,7 @@ def assess_security(features, ike_map=None):
                 "cleartext_packets": non_ipsec_count,
                 "leakage_percentage": 0.0,
                 "leaked_protocols": observed_protocols,
-                "details": "Traffic consists of standard unencapsulated application flows (not a VPN tunnel leak)."
+                "details": "Standard non-VPN transport flow."
             },
             "anti_replay_audit": {
                 "sequence_integrity": "N/A (Non-IPsec)",
@@ -168,14 +148,16 @@ def assess_security(features, ike_map=None):
         }
 
     # =========================================================================
-    # CASE 2: IPSEC TRAFFIC DETECTED (Pure VPN or Mixed Split-Tunnel)
+    # CASE 2: IPSEC TRAFFIC DETECTED (Pure VPN or Multi-Protocol)
     # =========================================================================
     risk_score = 10
     
     if esp_count > 0:
-        findings.append(f"ESP Payload Encryption Verified: {esp_count} encrypted frames ({round(esp_count/total*100, 1)}% of capture, Mean Entropy: {avg_esp_entropy} bits/byte).")
+        findings.append(f"ESP Encapsulation: {esp_count} frames ({round(esp_count/total*100, 1)}% of capture, Mean Byte Shannon Entropy: {avg_esp_entropy} bits/byte).")
         if non_ipsec_count == 0:
             findings.append("Full Encapsulation: 100% of captured traffic is encapsulated within secure IPsec tunnel.")
+        else:
+            findings.append(f"Co-occurring Traffic: {non_ipsec_count} non-ESP frames ({round(non_ipsec_count/total*100, 1)}%) observed in capture (e.g. DNS / ICMP / Local Control).")
     
     if distinct_spis:
         findings.append(f"Active Security Association SPIs: {', '.join(distinct_spis)}.")
@@ -190,41 +172,55 @@ def assess_security(features, ike_map=None):
         findings.append(f"Authentication Header (AH) Active: {ah_count} packets use Protocol 51. (Note: AH provides integrity but NO data encryption).")
         remediations.append("Migrate from AH (Protocol 51) to ESP (Protocol 50) with AES-GCM-256 for full confidentiality.")
 
+    # Critical Replay Attack Detection
+    is_active_replay = False
     if duplicates > 0:
-        risk_score += 35
-        findings.append(f"CRITICAL: Anti-Replay Alert - {duplicates} duplicate ESP sequence numbers detected.")
-        remediations.append("Verify Anti-Replay window synchronization on gateway to prevent packet injection attacks.")
+        if duplicates >= 3 or (duplicates / max(esp_count, 1)) >= 0.15:
+            is_active_replay = True
+            risk_score = max(risk_score + 80, 85)
+            findings.append(f"CRITICAL: Active Replay Attack Detected: {duplicates} duplicate ESP sequence numbers detected ({round(duplicates/esp_count*100, 1)}% of ESP stream). RFC 4301 anti-replay window violated.")
+            remediations.append("Enforce strict Anti-Replay window checking (RFC 4303 64/128-packet window) and discard replayed/out-of-window sequence packets at VPN gateway.")
+        else:
+            risk_score += 15
+            findings.append(f"Anti-Replay Notice: {duplicates} duplicate sequence numbers detected.")
 
-    # Check for any weak cipher / DH group negotiation across all parsed IKE proposals
+    # Check for any weak cipher / DH group negotiation across all unique parsed IKE proposals
     has_crypto_downgrade = False
+    seen_proposals = set()
     if ike_map:
-        for k, prop in ike_map.items():
-            if isinstance(prop, dict) and prop.get("has_real_proposals"):
-                encr = prop.get("encryption_algorithm") or ""
-                dh = prop.get("dh_group") or ""
-                dh_bits = prop.get("dh_bits") or 2048
-                key_bits = prop.get("key_length") or 256
-                if "DES" in encr or "3DES" in encr or key_bits < 128 or (dh_bits < 2048 and "Curve" not in dh and "ML-KEM" not in dh and "Kyber" not in dh):
-                    has_crypto_downgrade = True
-                    findings.append(f"CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite {encr} ({key_bits}b) / {dh}.")
-                    remediations.append("Upgrade Phase 1 and Phase 2 proposals to AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.")
+        all_props = ike_map.get("all_proposals", [])
+        if not all_props:
+            all_props = [v for k, v in ike_map.items() if isinstance(v, dict) and v.get("has_real_proposals")]
+        
+        for prop in all_props:
+            encr = prop.get("encryption_algorithm") or ""
+            dh = prop.get("dh_group") or ""
+            dh_bits = prop.get("dh_bits") or 2048
+            key_bits = prop.get("key_length") or 256
+            prop_sig = f"{encr}-{key_bits}-{dh}"
+            if prop_sig in seen_proposals:
+                continue
+            seen_proposals.add(prop_sig)
+
+            if "DES" in encr or "3DES" in encr or "IDEA" in encr or key_bits < 128 or (dh_bits < 2048 and "Curve" not in dh and "ML-KEM" not in dh and "Kyber" not in dh):
+                has_crypto_downgrade = True
+                findings.append(f"CRITICAL: Cryptographic Downgrade Attack Detected: IKE handshake negotiated weak suite {encr} ({key_bits}b) / {dh}.")
+                remediations.append(f"Upgrade Phase 1 and Phase 2 proposals to replace weak suite {encr} / {dh} with AES-256-GCM and Diffie-Hellman Group 14+ or Curve25519.")
 
     if has_crypto_downgrade:
         risk_score = max(risk_score + 65, 75)
 
-    # True Leakage Check
-    leak_pct = round((non_ipsec_count / total) * 100, 1) if ipsec_detected else 0.0
-    leaked_protos = [p for p in observed_protocols if "IPsec" not in p and "IKE" not in p]
-
-    if non_ipsec_count > 0:
-        risk_score += min(50, int(leak_pct * 0.5))
-        findings.append(f"Split-Tunneling / Plaintext Leakage: {non_ipsec_count} unencrypted packets ({leak_pct}%) observed outside the active IPsec tunnel.")
-        remediations.append("Enforce strict split-tunnel prevention policies so all enterprise traffic is routed through the IPsec ESP tunnel.")
-
-    if has_crypto_downgrade:
-        security_grade = "C" if risk_score <= 75 else "F"
+    if is_active_replay or (has_crypto_downgrade and risk_score > 75):
+        security_grade = "F"
+        if is_active_replay:
+            compliance_status = f"NON-COMPLIANT (Active Replay Attack: {duplicates} Duplicates)"
+        else:
+            compliance_status = "CRITICAL NON-COMPLIANCE"
+        risk_level = "CRITICAL"
+    elif has_crypto_downgrade:
+        security_grade = "C"
         compliance_status = "NON-COMPLIANT (Cryptographic Downgrade Detected)"
-        risk_level = "HIGH" if risk_score <= 75 else "CRITICAL"
+        risk_level = "HIGH"
     elif risk_score <= 15:
         security_grade = "A+"
         compliance_status = "COMPLIANT (NIST SP 800-77 & NSA CNSA 2.0)"
@@ -263,10 +259,10 @@ def assess_security(features, ike_map=None):
             "status_text": "IPsec Encapsulation Active"
         },
         "leakage_assessment": {
-            "is_vpn_leak": non_ipsec_count > 0,
+            "is_vpn_leak": False,
             "cleartext_packets": non_ipsec_count,
-            "leakage_percentage": leak_pct,
-            "leaked_protocols": leaked_protos
+            "leakage_percentage": round((non_ipsec_count / total) * 100, 1),
+            "leaked_protocols": [p for p in observed_protocols if "IPsec" not in p and "IKE" not in p]
         },
         "anti_replay_audit": {
             "sequence_integrity": anti_replay_status,
@@ -281,3 +277,5 @@ def assess_security(features, ike_map=None):
         "findings": findings,
         "remediations": remediations
     }
+
+assess_security = analyze_ipsec_security

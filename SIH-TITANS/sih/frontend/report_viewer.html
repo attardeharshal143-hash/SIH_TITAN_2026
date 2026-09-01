@@ -236,9 +236,9 @@
                     </div>
                 </div>
                 <div class="divide-y divide-outline-variant/20 font-mono">
-                    <div class="py-2 flex justify-between"><span class="text-outline">Harvest-Now-Decrypt-Later:</span><span class="font-bold text-secondary">RESISTANT (AES-256)</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">Harvest-Now-Decrypt-Later:</span><span class="font-bold text-secondary" id="rep-pqc-hndl">RESISTANT (AES-256)</span></div>
                     <div class="py-2 flex justify-between"><span class="text-outline">Weak Cipher Audit:</span><span class="font-bold text-secondary" id="rep-pqc-weak">0 Detected (DES/3DES/MD5: 0)</span></div>
-                    <div class="py-2 flex justify-between"><span class="text-outline">CNSA 2.0 Compliance:</span><span class="font-bold text-secondary">COMPLIANT</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">CNSA 2.0 Compliance:</span><span class="font-bold text-secondary" id="rep-pqc-cnsa">COMPLIANT</span></div>
                 </div>
             </div>
         </div>
@@ -400,7 +400,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!r.ok) throw new Error('Report ' + (reportId || 'latest') + ' not found.');
             return r.json();
         })
-        .then(function(data) { renderAll7Sections(data); })
+        .then(function(data) {
+            if (data.status === 'empty') {
+                document.getElementById('rep-title').textContent = 'No Audit Report Generated Yet';
+                document.getElementById('rep-meta-line').innerHTML = 'Please upload a PCAP file in <a href="analyzer.html" class="text-primary underline font-bold">Analyzer</a> to generate your live security report.';
+                return;
+            }
+            renderAll7Sections(data);
+        })
         .catch(function(err) {
             document.getElementById('rep-title').textContent = 'Report Unavailable';
             document.getElementById('rep-meta-line').textContent = err.message;
@@ -457,21 +464,23 @@ function copyActiveRemediationScript() {
 }
 
 function renderAll7Sections(data) {
+    if (!data) return;
     var repId = data.report_id || 'REP-LATEST';
-    var pcapName = data.pcap_file || 'final_ipsec.pcap';
-    var assessment = data.security_assessment || {};
+    var pcapName = data.pcap_file || 'Capture Trace';
+    var exec = data.executive_summary || data.security_assessment || {};
+    var assessment = data.security_assessment || data.executive_summary || {};
     var summary = data.traffic_summary || {};
     var crypto = data.cryptographic_analysis || {};
     var adv = data.advanced_security_audit || {};
     var eta = data.encrypted_traffic_analysis || {};
-    var pqc = data.pqc_readiness || {};
-    var mitre = data.mitre_attack_mapping || [];
+    var pqc = (adv && adv.pqc_readiness) ? adv.pqc_readiness : (data.pqc_readiness || {});
+    var mitre = (adv && adv.mitre_attack_mapping) ? adv.mitre_attack_mapping : (data.mitre_attack_mapping || []);
     var features = data.features || [];
 
     // Header Links
-    document.getElementById('rep-breadcrumb-id').textContent = repId;
-    document.getElementById('rep-filename').textContent = pcapName;
-    document.getElementById('rep-timestamp').textContent = data.generated_date_str || data.generated_at || 'Recently';
+    if (document.getElementById('rep-breadcrumb-id')) document.getElementById('rep-breadcrumb-id').textContent = repId;
+    if (document.getElementById('rep-filename')) document.getElementById('rep-filename').textContent = pcapName;
+    if (document.getElementById('rep-timestamp')) document.getElementById('rep-timestamp').textContent = data.generated_date_str || data.generated_at || 'Recently';
 
     var pdfBtn = document.getElementById('btn-pdf-download');
     if (pdfBtn) pdfBtn.href = (typeof getApiUrl === 'function') ? (getApiUrl('/api/reports/' + repId + '/pdf') + '?t=' + Date.now()) : ('/api/reports/' + repId + '/pdf?t=' + Date.now());
@@ -479,15 +488,16 @@ function renderAll7Sections(data) {
     var siemBtn = document.getElementById('btn-siem-export');
     if (siemBtn) siemBtn.href = (typeof getApiUrl === 'function') ? getApiUrl('/api/reports/' + repId + '/siem') : ('/api/reports/' + repId + '/siem');
 
-    // Section 1
-    var grade = assessment.security_grade || 'A+';
-    var risk = assessment.risk_level || 'LOW';
-    var score = assessment.risk_score !== undefined ? assessment.risk_score : 10;
+    // Section 1: Executive Summary
+    var grade = exec.security_grade || assessment.security_grade || 'A+';
+    var risk = exec.risk_level || assessment.risk_level || 'LOW';
+    var score = exec.risk_score !== undefined ? exec.risk_score : (assessment.risk_score !== undefined ? assessment.risk_score : 10);
+    var compliance = exec.compliance_status || assessment.compliance_status || 'COMPLIANT';
     var totalPkts = summary.packets_analyzed || features.length || 0;
     var espPkts = summary.esp_packets || 0;
     var ahPkts = summary.ah_packets || 0;
     var ikePkts = summary.ike_candidates || 0;
-    var isIpsec = (espPkts > 0 || ahPkts > 0 || ikePkts > 0 || assessment.ipsec_tunnel_detected);
+    var isIpsec = (espPkts > 0 || ahPkts > 0 || ikePkts > 0 || assessment.ipsec_tunnel_detected || exec.ipsec_tunnel_detected);
     var leakPkts = (assessment.leakage_assessment && assessment.leakage_assessment.is_vpn_leak) ? (summary.cleartext_packets || Math.max(0, totalPkts - espPkts - ikePkts - ahPkts)) : 0;
     var espPct = totalPkts > 0 ? ((espPkts / totalPkts) * 100).toFixed(1) : '0.0';
 
@@ -498,83 +508,139 @@ function renderAll7Sections(data) {
     var elCompliancePill = document.getElementById('rep-compliance-pill');
     var elStatusBadge = document.getElementById('rep-status-badge');
 
-    elGradeDisplay.textContent = grade;
-    elRiskTag.textContent = risk + ' (' + score + '/100)';
-    document.getElementById('rep-summary-total-pkts').textContent = totalPkts.toLocaleString();
-    document.getElementById('rep-summary-esp-pct').textContent = espPct + '%';
-    document.getElementById('rep-summary-leaks').textContent = isIpsec ? (leakPkts > 0 ? leakPkts + ' Packets' : '0 (None)') : 'N/A (Non-VPN)';
+    if (elGradeDisplay) elGradeDisplay.textContent = grade;
+    if (elRiskTag) elRiskTag.textContent = risk + ' (' + score + '/100)';
+    if (elCompliancePill) elCompliancePill.textContent = compliance;
+    var sumText = (data.executive_summary && data.executive_summary.summary_text) ? data.executive_summary.summary_text : (assessment.summary_text || ('Traffic trace ' + pcapName + ' was evaluated by the TITAN Inspection Engine. Security posture rated Grade ' + grade + ' with a normalized risk index of ' + score + '/100.'));
+    if (document.getElementById('rep-exec-summary-text')) document.getElementById('rep-exec-summary-text').textContent = sumText;
+    if (document.getElementById('rep-summary-total-pkts')) document.getElementById('rep-summary-total-pkts').textContent = totalPkts.toLocaleString();
+    if (document.getElementById('rep-summary-esp-pct')) document.getElementById('rep-summary-esp-pct').textContent = espPct + '%';
+    if (document.getElementById('rep-summary-leaks')) document.getElementById('rep-summary-leaks').textContent = isIpsec ? (leakPkts > 0 ? leakPkts + ' Packets' : '0 (None)') : 'N/A (Non-VPN)';
 
     // Dynamic Color Coding according to Grade (A+ / A / B / C / F)
     var normGrade = (grade || 'A').toUpperCase().trim();
     if (normGrade === 'A+' || normGrade === 'A') {
-        // GREEN / EMERALD (Secure / Compliant)
         if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-emerald-500/10 border-emerald-500/40 text-emerald-600 flex flex-col items-center justify-center shadow-xs';
         if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-emerald-600 leading-none';
         if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-emerald-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elGradeSubtext) elGradeSubtext.textContent = 'SECURE / LOW RISK';
         if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-emerald-600 uppercase font-mono';
         if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/30 text-xs font-bold font-mono';
         if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-700 font-semibold uppercase text-[10px]';
     } else if (normGrade === 'B') {
-        // BLUE / CYAN (Baseline / Standard Non-VPN / Minor Warnings)
         if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-blue-500/10 border-blue-500/40 text-blue-600 flex flex-col items-center justify-center shadow-xs';
         if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-blue-600 leading-none';
         if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-blue-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elGradeSubtext) elGradeSubtext.textContent = 'STANDARD / MODERATE';
         if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-blue-600 uppercase font-mono';
         if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-500/30 text-xs font-bold font-mono';
         if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 font-semibold uppercase text-[10px]';
     } else if (normGrade === 'C') {
-        // AMBER / ORANGE (Vulnerabilities Detected / High Risk)
         if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-amber-500/15 border-amber-500/50 text-amber-600 flex flex-col items-center justify-center shadow-xs';
         if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-amber-600 leading-none';
         if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-amber-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elGradeSubtext) elGradeSubtext.textContent = 'HIGH RISK / DOWNGRADE';
         if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-amber-600 uppercase font-mono';
         if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/40 text-xs font-bold font-mono';
         if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 font-semibold uppercase text-[10px]';
     } else {
-        // RED / CRIMSON (Critical Non-Compliance / Grade F)
         if (elGradeBox) elGradeBox.className = 'w-24 h-24 my-3 rounded-2xl border-2 bg-red-500/15 border-red-500/50 text-red-600 flex flex-col items-center justify-center shadow-xs';
         if (elGradeDisplay) elGradeDisplay.className = 'text-5xl font-black text-red-600 leading-none';
         if (elGradeSubtext) elGradeSubtext.className = 'text-[9px] font-mono text-red-600/80 uppercase tracking-widest mt-1 font-bold';
+        if (elGradeSubtext) elGradeSubtext.textContent = 'CRITICAL / NON-COMPLIANT';
         if (elRiskTag) elRiskTag.className = 'text-xs font-bold text-red-600 uppercase font-mono';
         if (elCompliancePill) elCompliancePill.className = 'px-3 py-1 rounded-full bg-red-500/15 text-red-700 border border-red-500/40 text-xs font-bold font-mono';
         if (elStatusBadge) elStatusBadge.className = 'px-2 py-0.5 rounded bg-red-500/20 text-red-800 font-semibold uppercase text-[10px]';
     }
 
-    // Inferred Mode & Cipher
+    // Section 2: Cryptographic Posture
     var cInfer = data.cipher_mode_inference || {};
     if (document.getElementById('rep-crypto-opmode')) document.getElementById('rep-crypto-opmode').textContent = cInfer.operating_mode || (isIpsec ? 'Tunnel Mode (RFC 4301)' : 'N/A (Non-VPN)');
-    if (document.getElementById('rep-crypto-cipher')) document.getElementById('rep-crypto-cipher').textContent = cInfer.inferred_cipher || (isIpsec ? 'AES-GCM-256 AEAD' : 'Plaintext HTTP/TCP');
+    if (document.getElementById('rep-crypto-cipher')) document.getElementById('rep-crypto-cipher').textContent = cInfer.inferred_cipher || (isIpsec ? 'AES-GCM-256 AEAD' : 'Plaintext / Cleartext Stream');
     if (document.getElementById('rep-crypto-integ')) document.getElementById('rep-crypto-integ').textContent = cInfer.integrity_algorithm || (isIpsec ? 'AEAD GHASH 128-bit' : 'Checksum Only');
 
-    // Section 2
+    var elHndl = document.getElementById('rep-pqc-hndl');
+    var elCnsa = document.getElementById('rep-pqc-cnsa');
+    var elWeak = document.getElementById('rep-pqc-weak');
+
     if (!isIpsec) {
-        document.getElementById('rep-crypto-enc').textContent = 'None (Standard Plaintext / Application Layer)';
-        document.getElementById('rep-crypto-spis').textContent = 'None (Non-IPsec Stream)';
-        document.getElementById('rep-pqc-score-text').textContent = 'N/A (Non-VPN Stream)';
-        document.getElementById('rep-pqc-progress-fill').style.width = '0%';
-    } else {
-        document.getElementById('rep-crypto-enc').textContent = crypto.encryption_enforced ? 'Enforced (ESP Protocol 50)' : 'NOT ENFORCED';
-        if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
-            document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
-        } else {
-            document.getElementById('rep-crypto-spis').textContent = 'Active Security Association';
+        if (document.getElementById('rep-crypto-enc')) document.getElementById('rep-crypto-enc').textContent = 'None (Standard Plaintext / Application Layer)';
+        if (document.getElementById('rep-crypto-spis')) document.getElementById('rep-crypto-spis').textContent = 'None (Non-IPsec Stream)';
+        if (document.getElementById('rep-pqc-score-text')) {
+            document.getElementById('rep-pqc-score-text').textContent = 'N/A (Non-VPN Stream)';
+            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-outline text-sm';
         }
-        var pqcScore = pqc.pqc_score !== undefined ? pqc.pqc_score : 85;
-        document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + (pqc.pqc_status || 'QUANTUM-RESISTANT') + ')';
-        document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
-        if (pqcScore <= 30) {
-            document.getElementById('rep-pqc-progress-fill').className = 'bg-red-500 h-full rounded-full';
-            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-red-600 text-sm';
+        if (document.getElementById('rep-pqc-progress-fill')) {
+            document.getElementById('rep-pqc-progress-fill').style.width = '0%';
+            document.getElementById('rep-pqc-progress-fill').className = 'bg-outline-variant h-full rounded-full';
+        }
+        if (elHndl) { elHndl.textContent = 'N/A (Cleartext Stream)'; elHndl.className = 'font-bold text-outline'; }
+        if (elWeak) { elWeak.textContent = 'N/A (Non-VPN)'; elWeak.className = 'font-bold text-outline'; }
+        if (elCnsa) { elCnsa.textContent = 'NON-VPN'; elCnsa.className = 'font-bold text-outline'; }
+    } else {
+        if (document.getElementById('rep-crypto-enc')) document.getElementById('rep-crypto-enc').textContent = crypto.encryption_enforced ? 'Enforced (ESP Protocol 50)' : 'NOT ENFORCED';
+        if (document.getElementById('rep-crypto-spis')) {
+            if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
+                document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
+            } else {
+                document.getElementById('rep-crypto-spis').textContent = 'Active Security Association';
+            }
+        }
+        var pqcScore = pqc.pqc_score;
+        var pqcStatus = pqc.pqc_status || 'Indeterminate';
+        
+        if (pqcScore === null || pqcScore === undefined) {
+            if (document.getElementById('rep-pqc-score-text')) {
+                document.getElementById('rep-pqc-score-text').textContent = 'Indeterminate (Key Exchange Not in Capture)';
+                document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-outline text-xs';
+            }
+            if (document.getElementById('rep-pqc-progress-fill')) {
+                document.getElementById('rep-pqc-progress-fill').style.width = '0%';
+                document.getElementById('rep-pqc-progress-fill').className = 'bg-outline-variant h-full rounded-full';
+            }
+            if (elHndl) { elHndl.textContent = 'Indeterminate (Requires IKE Handshake)'; elHndl.className = 'font-bold text-outline'; }
+            if (elWeak) { elWeak.textContent = 'Indeterminate (Pre-established SA)'; elWeak.className = 'font-bold text-outline'; }
+            if (elCnsa) { elCnsa.textContent = 'INDETERMINATE (No Handshake)'; elCnsa.className = 'font-bold text-outline'; }
+        } else if (pqcScore <= 30) {
+            if (document.getElementById('rep-pqc-score-text')) {
+                document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + pqcStatus + ')';
+                document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-red-600 text-sm';
+            }
+            if (document.getElementById('rep-pqc-progress-fill')) {
+                document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
+                document.getElementById('rep-pqc-progress-fill').className = 'bg-red-500 h-full rounded-full';
+            }
+            if (elHndl) { elHndl.textContent = 'VULNERABLE (Legacy / Downgraded)'; elHndl.className = 'font-bold text-red-600'; }
+            if (elWeak) { elWeak.textContent = 'Weak Cipher / DH Group Detected'; elWeak.className = 'font-bold text-red-600'; }
+            if (elCnsa) { elCnsa.textContent = 'NON-COMPLIANT'; elCnsa.className = 'font-bold text-red-600'; }
         } else if (pqcScore >= 80) {
-            document.getElementById('rep-pqc-progress-fill').className = 'bg-emerald-500 h-full rounded-full';
-            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-emerald-600 text-sm';
+            if (document.getElementById('rep-pqc-score-text')) {
+                document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + pqcStatus + ')';
+                document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-emerald-600 text-sm';
+            }
+            if (document.getElementById('rep-pqc-progress-fill')) {
+                document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
+                document.getElementById('rep-pqc-progress-fill').className = 'bg-emerald-500 h-full rounded-full';
+            }
+            if (elHndl) { elHndl.textContent = 'RESISTANT (AES-256)'; elHndl.className = 'font-bold text-emerald-600'; }
+            if (elWeak) { elWeak.textContent = '0 Detected (DES/3DES/MD5: 0)'; elWeak.className = 'font-bold text-emerald-600'; }
+            if (elCnsa) { elCnsa.textContent = 'COMPLIANT (CNSA 2.0)'; elCnsa.className = 'font-bold text-emerald-600'; }
         } else {
-            document.getElementById('rep-pqc-progress-fill').className = 'bg-amber-500 h-full rounded-full';
-            document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-amber-600 text-sm';
+            if (document.getElementById('rep-pqc-score-text')) {
+                document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + pqcStatus + ')';
+                document.getElementById('rep-pqc-score-text').className = 'font-bold font-mono text-amber-600 text-sm';
+            }
+            if (document.getElementById('rep-pqc-progress-fill')) {
+                document.getElementById('rep-pqc-progress-fill').style.width = pqcScore + '%';
+                document.getElementById('rep-pqc-progress-fill').className = 'bg-amber-500 h-full rounded-full';
+            }
+            if (elHndl) { elHndl.textContent = 'ELEVATED RISK'; elHndl.className = 'font-bold text-amber-600'; }
+            if (elWeak) { elWeak.textContent = 'Review Proposals'; elWeak.className = 'font-bold text-amber-600'; }
+            if (elCnsa) { elCnsa.textContent = 'PARTIALLY COMPLIANT'; elCnsa.className = 'font-bold text-amber-600'; }
         }
     }
 
-    // Render Per-Tunnel / Per-SA Partitioned Table
+    // Per-Tunnel / Per-SA Partitioned Table
     var sas = data.security_associations || [];
     var saContainer = document.getElementById('rep-multi-sa-container');
     var saTbody = document.getElementById('rep-multi-sa-tbody');
@@ -604,8 +670,8 @@ function renderAll7Sections(data) {
         }
     }
 
-    // Section 3 Matrix
-    document.getElementById('rep-traffic-badge-count').textContent = 'Total Analyzed: ' + totalPkts.toLocaleString() + ' Frames';
+    // Section 3: Protocol Matrix
+    if (document.getElementById('rep-traffic-badge-count')) document.getElementById('rep-traffic-badge-count').textContent = 'Total Analyzed: ' + totalPkts.toLocaleString() + ' Frames';
     var matrixBody = document.getElementById('rep-protocol-matrix-body');
     if (matrixBody) {
         matrixBody.innerHTML = '';
@@ -630,90 +696,102 @@ function renderAll7Sections(data) {
         });
     }
 
-    // Section 3 Frames Sample
+    // Section 3: Frame Inspector
     var framesTbody = document.getElementById('rep-frames-tbody');
-    if (framesTbody && features.length > 0) {
+    if (framesTbody) {
         framesTbody.innerHTML = '';
-        var slice = features.slice(0, 50);
-        document.getElementById('rep-frames-sub-count').textContent = 'Showing ' + slice.length + ' of ' + features.length + ' frames';
-        slice.forEach(function(pkt, idx) {
-            var tr = document.createElement('tr');
-            tr.className = 'hover:bg-surface-container-low transition-colors';
-            var isEsp = pkt.esp;
-            var isIke = pkt.ike_candidate;
-            var badgeClass = isEsp ? 'text-primary font-bold' : (isIke ? 'text-tertiary font-bold' : 'text-outline');
-            tr.innerHTML = '<td class="p-2 text-outline">' + (pkt.packet_number || (idx + 1)) + '</td>' +
-                '<td class="p-2 text-outline">' + (pkt.time_offset !== undefined ? pkt.time_offset + 's' : '-') + '</td>' +
-                '<td class="p-2 text-on-surface">' + (pkt.src_ip || '-') + (pkt.src_port ? ':' + pkt.src_port : '') + '</td>' +
-                '<td class="p-2 text-on-surface">' + (pkt.dst_ip || '-') + (pkt.dst_port ? ':' + pkt.dst_port : '') + '</td>' +
-                '<td class="p-2 ' + badgeClass + '">' + (pkt.transport_protocol || 'OTHER') + '</td>' +
-                '<td class="p-2 text-outline truncate max-w-xs">' + (pkt.info || '-') + '</td>' +
-                '<td class="p-2 text-right text-outline">' + (pkt.packet_length || pkt.length || 0) + ' B</td>';
-            framesTbody.appendChild(tr);
-        });
+        if (features && features.length > 0) {
+            var slice = features.slice(0, 50);
+            if (document.getElementById('rep-frames-sub-count')) document.getElementById('rep-frames-sub-count').textContent = 'Showing ' + slice.length + ' of ' + features.length + ' frames';
+            slice.forEach(function(pkt, idx) {
+                var tr = document.createElement('tr');
+                tr.className = 'hover:bg-surface-container-low transition-colors';
+                var isEsp = pkt.esp;
+                var isIke = pkt.ike_candidate;
+                var badgeClass = isEsp ? 'text-primary font-bold' : (isIke ? 'text-tertiary font-bold' : 'text-outline');
+                tr.innerHTML = '<td class="p-2 text-outline">' + (pkt.packet_number || (idx + 1)) + '</td>' +
+                    '<td class="p-2 text-outline">' + (pkt.time_offset !== undefined ? pkt.time_offset + 's' : '-') + '</td>' +
+                    '<td class="p-2 text-on-surface">' + (pkt.src_ip || '-') + (pkt.src_port ? ':' + pkt.src_port : '') + '</td>' +
+                    '<td class="p-2 text-on-surface">' + (pkt.dst_ip || '-') + (pkt.dst_port ? ':' + pkt.dst_port : '') + '</td>' +
+                    '<td class="p-2 ' + badgeClass + '">' + (pkt.transport_protocol || 'OTHER') + '</td>' +
+                    '<td class="p-2 text-outline truncate max-w-xs">' + (pkt.info || '-') + '</td>' +
+                    '<td class="p-2 text-right text-outline">' + (pkt.packet_length || pkt.length || 0) + ' B</td>';
+                framesTbody.appendChild(tr);
+            });
+        } else {
+            if (document.getElementById('rep-frames-sub-count')) document.getElementById('rep-frames-sub-count').textContent = '0 frames';
+            framesTbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-outline text-xs">No frame features recorded.</td></tr>';
+        }
     }
 
-    // Section 4
-    if (eta.application_category) document.getElementById('rep-eta-inferred-app').textContent = eta.application_category;
-    if (eta.eta_confidence) document.getElementById('rep-eta-confidence-val').textContent = eta.eta_confidence + '%';
-    if (eta.traffic_pattern) document.getElementById('rep-eta-pattern-val').textContent = eta.traffic_pattern;
-    if (eta.burstiness_index !== undefined) document.getElementById('rep-eta-burstiness-val').textContent = eta.burstiness_index;
-    if (eta.inferred_behavior) document.getElementById('rep-eta-heuristic-desc').textContent = eta.inferred_behavior;
+    // Section 4: ETA
+    if (document.getElementById('rep-eta-inferred-app')) document.getElementById('rep-eta-inferred-app').textContent = eta.application_category || (isIpsec ? 'Encapsulated Stream' : 'Standard Web/TCP Communication');
+    var confText = eta.eta_confidence ? (typeof eta.eta_confidence === 'number' ? eta.eta_confidence + '%' : eta.eta_confidence) : 'N/A (Encrypted Payload)';
+    if (document.getElementById('rep-eta-confidence-val')) document.getElementById('rep-eta-confidence-val').textContent = confText;
+    if (document.getElementById('rep-eta-pattern-val')) document.getElementById('rep-eta-pattern-val').textContent = eta.traffic_pattern || 'Standard Flow';
+    if (document.getElementById('rep-eta-burstiness-val')) document.getElementById('rep-eta-burstiness-val').textContent = eta.burstiness_index !== undefined ? eta.burstiness_index : '0.0';
+    if (document.getElementById('rep-eta-heuristic-desc')) document.getElementById('rep-eta-heuristic-desc').textContent = eta.inferred_behavior || 'Traffic flow evaluated using multi-moment statistical packet analysis.';
 
-    // Section 5
+    // Section 5: MITRE ATT&CK
     var mitreBody = document.getElementById('rep-mitre-rows');
-    if (mitreBody && mitre.length > 0) {
+    if (mitreBody) {
         mitreBody.innerHTML = '';
-        mitre.forEach(function(m) {
-            var tr = document.createElement('tr');
-            tr.className = 'hover:bg-surface-container-low transition-colors font-mono text-xs';
-            var sevClass = m.severity === 'CRITICAL' ? 'bg-error text-white' : (m.severity === 'HIGH' ? 'bg-error/20 text-error' : (m.severity === 'MEDIUM' ? 'bg-tertiary/20 text-tertiary' : 'bg-secondary-container/40 text-secondary'));
-            tr.innerHTML = '<td class="p-3.5 font-bold text-primary">' + (m.technique_id || '-') + '</td>' +
-                '<td class="p-3.5 font-medium text-on-surface">' + (m.technique_name || '-') + '</td>' +
-                '<td class="p-3.5 text-on-surface-variant">' + (m.tactic || '-') + '</td>' +
-                '<td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ' + sevClass + '">' + (m.severity || 'LOW') + '</span></td>' +
-                '<td class="p-3.5 text-on-surface-variant leading-relaxed font-sans">' + (m.finding || m.mitigation || '-') + '</td>';
-            mitreBody.appendChild(tr);
-        });
+        if (mitre && mitre.length > 0) {
+            mitre.forEach(function(m) {
+                var tr = document.createElement('tr');
+                tr.className = 'hover:bg-surface-container-low transition-colors font-mono text-xs';
+                var sevClass = m.severity === 'CRITICAL' ? 'bg-error text-white' : (m.severity === 'HIGH' ? 'bg-error/20 text-error' : (m.severity === 'MEDIUM' ? 'bg-tertiary/20 text-tertiary' : 'bg-secondary-container/40 text-secondary'));
+                tr.innerHTML = '<td class="p-3.5 font-bold text-primary">' + (m.technique_id || '-') + '</td>' +
+                    '<td class="p-3.5 font-medium text-on-surface">' + (m.technique_name || '-') + '</td>' +
+                    '<td class="p-3.5 text-on-surface-variant">' + (m.tactic || '-') + '</td>' +
+                    '<td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ' + sevClass + '">' + (m.severity || 'LOW') + '</span></td>' +
+                    '<td class="p-3.5 text-on-surface-variant leading-relaxed font-sans">' + (m.finding_ref || m.finding || m.mitigation || '-') + '</td>';
+                mitreBody.appendChild(tr);
+            });
+        } else {
+            mitreBody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-outline font-mono text-xs">No active MITRE ATT&CK threat techniques or vulnerability indicators triggered in this capture trace.</td></tr>';
+        }
     }
 
-    // Section 6
+    // Section 6: Findings
     var findingsCont = document.getElementById('rep-deep-findings-container');
     if (findingsCont) {
         findingsCont.innerHTML = '';
-        var findings = assessment.findings || [
-            '100% Encapsulated ESP traffic (Proto 50) verified across all capture windows.',
-            'Zero cleartext protocol leakage (Telnet/HTTP/FTP) observed outside secure tunnel.',
-            'Cryptographic suite compliant with NSA CNSA 2.0 and NIST SP 800-77 recommendations.'
-        ];
-        findings.forEach(function(f, idx) {
-            var d = document.createElement('div');
-            d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
-            d.innerHTML = '<span class="font-mono font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded shrink-0">[' + (idx + 1) + ']</span>' +
-                '<span class="text-on-surface leading-relaxed">' + f + '</span>';
-            findingsCont.appendChild(d);
-        });
+        var findings = assessment.findings || exec.findings || data.findings || [];
+        if (findings.length === 0) {
+            findingsCont.innerHTML = '<div class="p-4 rounded-xl bg-surface-container-low text-outline text-xs font-mono text-center">No critical security findings recorded for this trace.</div>';
+        } else {
+            findings.forEach(function(f, idx) {
+                var d = document.createElement('div');
+                d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
+                d.innerHTML = '<span class="font-mono font-bold text-secondary bg-secondary/10 px-2 py-0.5 rounded shrink-0">[' + (idx + 1) + ']</span>' +
+                    '<span class="text-on-surface leading-relaxed">' + f + '</span>';
+                findingsCont.appendChild(d);
+            });
+        }
     }
 
-    // Section 7
+    // Section 7: Hardening Guidance
     var stepsCont = document.getElementById('rep-hardening-steps-container');
     if (stepsCont) {
         stepsCont.innerHTML = '';
-        var rems = assessment.remediation_guidance || assessment.remediations || [
-            'Maintain AES-GCM-256 with AEAD integrity for all IPsec Security Associations.',
-            'Enforce Perfect Forward Secrecy (PFS) with Diffie-Hellman Group 14+ (2048-bit MODP).',
-            'Schedule migration to Post-Quantum Kyber / ML-KEM hybrid key exchange per CNSA 2.0.'
-        ];
-        rems.forEach(function(r, idx) {
-            var d = document.createElement('div');
-            d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
-            d.innerHTML = '<span class="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">STEP ' + (idx + 1) + '</span>' +
-                '<span class="text-on-surface-variant leading-relaxed">' + r + '</span>';
-            stepsCont.appendChild(d);
-        });
+        var rems = assessment.remediation_guidance || assessment.remediations || data.remediations || [];
+        if (rems.length === 0) {
+            stepsCont.innerHTML = '<div class="p-4 rounded-xl bg-surface-container-low text-outline text-xs font-mono text-center">Configuration is compliant. No urgent remediation actions required.</div>';
+        } else {
+            rems.forEach(function(r, idx) {
+                var d = document.createElement('div');
+                d.className = 'p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 flex items-start gap-3 text-xs';
+                d.innerHTML = '<span class="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded shrink-0">STEP ' + (idx + 1) + '</span>' +
+                    '<span class="text-on-surface-variant leading-relaxed">' + r + '</span>';
+                stepsCont.appendChild(d);
+            });
+        }
     }
 
     // SIEM JSON
+    currentRemediationData = data.remediation_scripts || {};
+    switchRemediationTab(activeRemediationTab || 'strongswan');
     var jsonEl = document.getElementById('rep-json-block');
     if (jsonEl) jsonEl.textContent = JSON.stringify(data, null, 2);
 }

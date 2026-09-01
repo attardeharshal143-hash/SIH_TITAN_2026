@@ -105,7 +105,7 @@ def partition_and_audit_tunnels(features, ike_map=None):
             key_bits = sa_ike.get("key_length") or 256
             prf_name = sa_ike.get("prf_algorithm") or "PRF_HMAC_SHA2_256"
 
-            is_weak_cipher = ("DES" in encr or "3DES" in encr or key_bits < 128)
+            is_weak_cipher = ("DES" in encr or "3DES" in encr or "IDEA" in encr or key_bits < 128)
             is_weak_dh = (dh_bits < 2048 and "Curve" not in dh and "ML-KEM" not in dh and "Kyber" not in dh)
             
             sym_score = 0 if is_weak_cipher else (20 if key_bits == 128 else 40)
@@ -122,8 +122,8 @@ def partition_and_audit_tunnels(features, ike_map=None):
                 pqc_status = "PARTIALLY RESISTANT"
         else:
             # Established ESP stream without IKE in capture window
-            pqc_score = 85
-            pqc_status = "QUANTUM-RESISTANT (Symmetric Verified)"
+            pqc_score = None
+            pqc_status = "Indeterminate (Handshake Not in Capture Window)"
 
         sa_audits.append({
             "spi": spi_key,

@@ -132,7 +132,9 @@ def create_pdf_report(report_data, output_pdf_path):
     
     pdf.set_x(10)
     pdf.cell(95, 4.5, f"- Payload Encryption: {'Enforced (ESP Protocol 50)' if esp_pkts > 0 else 'None (Unencrypted / Plaintext)'}", ln=False)
-    pdf.cell(95, 4.5, f"- PQC Readiness: {pqc.get('pqc_score', 0)}% ({pqc.get('pqc_status', 'N/A')})", ln=True)
+    pqc_val = pqc.get('pqc_score')
+    pqc_str = f"{pqc_val}% ({pqc.get('pqc_status', 'N/A')})" if pqc_val is not None else (pqc.get('pqc_status', 'Indeterminate') if is_ipsec else 'N/A (Non-VPN)')
+    pdf.cell(95, 4.5, f"- PQC Readiness: {sanitize_pdf_str(pqc_str[:45])}", ln=True)
     
     pdf.set_x(10)
     pdf.cell(95, 4.5, f"- Auth / ICV Tag: {sanitize_pdf_str(icv_tag[:45])}", ln=False)

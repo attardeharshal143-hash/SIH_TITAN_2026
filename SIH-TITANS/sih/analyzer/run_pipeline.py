@@ -58,14 +58,7 @@ def run_complete_pipeline(pcap_path, reports_dir=None, dataset_dir=None):
             ike_map=ike_map
         )
 
-        # Optional: Save intermediate dataset files if dataset_dir provided
-        if dataset_dir is not None:
-            dataset_dir = Path(dataset_dir)
-            dataset_dir.mkdir(parents=True, exist_ok=True)
-            with open(dataset_dir / "ipsec_features.json", "w", encoding="utf-8") as f:
-                json.dump(features, f, indent=2)
-            with open(dataset_dir / "final_report.json", "w", encoding="utf-8") as f:
-                json.dump(report, f, indent=2)
+        # Intermediate files are not written to dataset to ensure clean environment
 
         return True, report, features, None
 

@@ -8,7 +8,10 @@
     <link rel="shortcut icon" href="logo.png?v=3">
     <link rel="apple-touch-icon" href="logo.png?v=3">
     <title>Analyzer - IPsec Analyzer</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
+
+
+</script>
 
 
 
@@ -107,7 +110,10 @@
                 }
             }
         }
-    </script>
+    
+
+
+</script>
 <style>
         html, body { overflow-x: hidden !important; max-width: 100vw !important; width: 100% !important; -webkit-text-size-adjust: 100% !important; }
         body { font-family: 'Geist', sans-serif; background-color: #faf9fe; color: #1a1b1f; }
@@ -115,7 +121,10 @@
         .glass-nav { background: rgba(250, 249, 254, 0.8); backdrop-filter: blur(20px); }
         .drag-active { border-color: #007AFF; background-color: rgba(0, 122, 255, 0.05); }
     </style>
-<script src="js/api.js"></script>
+<script src="js/api.js">
+
+
+</script>
     <style>
         * { font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         .titan-nav { font-family: 'Geist', sans-serif !important; height: 64px; }
@@ -261,6 +270,8 @@
             <p id="upload-hint" class="font-label-sm text-xs text-outline mt-2">Supported formats: .pcap, .pcapng (Max 500MB)</p>
         </div>
         
+        
+        
         <!-- Status & Action Bar (Cleanly Separated) -->
         <div class="flex flex-wrap items-center justify-between gap-2 min-h-[36px]">
             <div id="upload-status-banner" class="hidden px-4 py-1.5 rounded-full text-xs font-semibold shadow-xs"></div>
@@ -331,32 +342,7 @@
 <th class="p-md font-semibold">Info</th>
 </tr>
 </thead>
-<tbody id="packets-tbody" class="font-body-md text-body-md text-on-surface">
-<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-<td class="p-md text-outline">1</td>
-<td class="p-md">0.0000</td>
-<td class="p-md">192.168.1.10</td>
-<td class="p-md">10.0.0.5</td>
-<td class="p-md"><span class="bg-surface-variant px-2 py-1 rounded-full text-xs">ISAKMP</span></td>
-<td class="p-md text-on-surface-variant">Identity Protection (Main Mode)</td>
-</tr>
-<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-<td class="p-md text-outline">2</td>
-<td class="p-md">0.0412</td>
-<td class="p-md">10.0.0.5</td>
-<td class="p-md">192.168.1.10</td>
-<td class="p-md"><span class="bg-surface-variant px-2 py-1 rounded-full text-xs">ISAKMP</span></td>
-<td class="p-md text-on-surface-variant">Identity Protection (Main Mode)</td>
-</tr>
-<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-<td class="p-md text-outline">3</td>
-<td class="p-md">0.1054</td>
-<td class="p-md">192.168.1.10</td>
-<td class="p-md">10.0.0.5</td>
-<td class="p-md"><span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs">ESP</span></td>
-<td class="p-md text-on-surface-variant">ESP (SPI=0x1a2b3c4d)</td>
-</tr>
-</tbody>
+<tbody id="packets-tbody" class="font-body-md text-body-md text-on-surface"><tr><td colspan="6" class="p-8 text-center text-outline text-xs font-mono"><div class="flex flex-col items-center justify-center gap-2"><span class="material-symbols-outlined text-3xl text-outline-variant">troubleshoot</span><span>No capture file analyzed yet. Upload a .pcap file above to inspect frames.</span></div></td></tr></tbody>
 </table>
 </div>
 </div>
@@ -370,11 +356,11 @@
 <h3 class="font-headline-md text-headline-md text-on-surface">AI Analysis</h3>
 </div>
 <p class="font-body-md text-body-md text-on-surface-variant mb-4">
-                        Traffic patterns indicate a standard Site-to-Site VPN establishment. IKE phase 1 completed normally. ESP traffic shows consistent sequencing, suggesting a stable tunnel.
+                        Awaiting network capture ingestion. Upload a .pcap trace to run AI classification and security posture checks.
                     </p>
 <div class="flex items-center justify-between bg-surface-container-low p-md rounded-lg">
 <span class="font-label-md text-label-md text-on-surface">Confidence Score</span>
-<span class="font-headline-md text-headline-md text-secondary">94%</span>
+<span id="ai-confidence-score" class="font-headline-md text-headline-md text-secondary">--</span>
 </div>
 </div>
 <!-- Security Assessment -->
@@ -383,18 +369,10 @@
 <span class="material-symbols-outlined text-error" data-icon="security">security</span>
 <h3 class="font-headline-md text-headline-md text-on-surface">Security Assessment</h3>
 </div>
-<ul class="flex flex-col gap-3 font-body-md text-body-md">
-<li class="flex items-start gap-2">
-<span class="material-symbols-outlined text-secondary text-sm mt-1" data-icon="check_circle">check_circle</span>
-<span class="text-on-surface-variant">Strong encryption algorithms detected (AES-256).</span>
-</li>
-<li class="flex items-start gap-2">
-<span class="material-symbols-outlined text-secondary text-sm mt-1" data-icon="check_circle">check_circle</span>
-<span class="text-on-surface-variant">PFS (Perfect Forward Secrecy) is enabled.</span>
-</li>
-<li class="flex items-start gap-2">
-<span class="material-symbols-outlined text-error text-sm mt-1" data-icon="warning">warning</span>
-<span class="text-on-surface-variant">Aggressive mode detected in fallback attempts. Consider disabling.</span>
+<ul id="security-assessment-list" class="flex flex-col gap-2 font-body-md text-body-md">
+<li class="flex items-center gap-2 text-outline text-xs font-mono py-2">
+<span class="material-symbols-outlined text-sm text-outline-variant">info</span>
+<span>Awaiting PCAP trace ingestion for automated vulnerability and compliance checks.</span>
 </li>
 </ul>
 </div>
@@ -720,6 +698,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+
+
 </script>
 
 <!-- Mobile Floating Navigation Dock (iOS App Style) -->
@@ -749,5 +730,8 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
 </nav>
 
-<script src="js/titan-turbo.js" defer></script>
+<script src="js/titan-turbo.js" defer>
+
+
+</script>
 </body></html>

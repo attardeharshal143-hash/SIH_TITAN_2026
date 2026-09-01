@@ -321,7 +321,7 @@
             </div>
             <div class="min-w-[120px]">
                 <span class="text-[10px] font-bold uppercase text-outline block leading-none mb-1">Local Host</span>
-                <span id="live-local-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">10.243.32.130</span>
+                <span id="live-local-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">Listening on Adapter...</span>
             </div>
         </div>
 
@@ -334,7 +334,7 @@
                 <div class="h-full bg-primary rounded-full w-full animate-pulse"></div>
             </div>
             <div class="text-[10px] font-mono text-outline mt-1.5 flex items-center justify-center gap-2 whitespace-nowrap">
-                <span>SPI: <span id="live-active-spi" class="font-bold text-primary">0xc743e05b</span></span>
+                <span>SPI: <span id="live-active-spi" class="font-bold text-primary">--</span></span>
                 <span class="text-outline-variant">&bull;</span>
                 <span class="text-secondary font-semibold">Anti-Replay Monotonic</span>
             </div>
@@ -344,7 +344,7 @@
         <div class="flex items-center gap-2.5 text-right shrink-0 justify-end">
             <div class="min-w-[120px]">
                 <span class="text-[10px] font-bold uppercase text-outline block leading-none mb-1">Peer Gateway</span>
-                <span id="live-peer-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">VPN Security Node</span>
+                <span id="live-peer-ip" class="font-mono text-xs font-bold text-on-surface block leading-tight">Remote VPN Peer</span>
             </div>
             <div class="w-9 h-9 rounded-lg bg-surface border border-outline-variant/40 flex items-center justify-center shrink-0 shadow-xs">
                 <span class="material-symbols-outlined text-tertiary text-[18px]">dns</span>
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var espCount = 0;
                 var ikeCount = 0;
                 var leakCount = 0;
-                var activeSpi = '0xc743e05b';
+                var activeSpi = '--';
 
                 if (data.packets && data.packets.length > 0) {
                     data.packets.forEach(function(p) {

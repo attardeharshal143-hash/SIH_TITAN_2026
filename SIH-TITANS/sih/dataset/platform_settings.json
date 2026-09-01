@@ -8,5 +8,7 @@
   "auto_scroll": true,
   "siem_format": "ECS_JSON_V2",
   "audio_alerts": false,
-  "auto_redirect": true
+  "auto_redirect": true,
+  "max_packets": 5000,
+  "theme": "dark"
 }
