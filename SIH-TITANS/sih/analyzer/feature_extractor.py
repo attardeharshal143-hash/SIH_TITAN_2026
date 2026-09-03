@@ -73,7 +73,7 @@ def extract_packet_features(packet, packet_number, base_time=None):
         features["dst_ip"] = str(ip.dst)
         ip_payload = bytes(ip.payload)
 
-    # 1. IPsec ESP (Protocol 50) - Isolate True ESP Payload Data for Entropy
+    # 1. IPsec ESP (Protocol 50) - Native L3 Encapsulation
     if packet.haslayer(ESP) or features["ip_protocol_number"] == 50:
         features["esp"] = True
         features["transport_protocol"] = "ESP"
@@ -132,7 +132,11 @@ def extract_packet_features(packet, packet_number, base_time=None):
 
     # 3. Transport Layers (TCP / UDP / ICMP)
     payload_bytes = b""
-    if packet.haslayer(Raw):
+    if packet.haslayer(UDP):
+        payload_bytes = bytes(packet[UDP].payload) if hasattr(packet[UDP], "payload") else b""
+    elif packet.haslayer(TCP):
+        payload_bytes = bytes(packet[TCP].payload) if hasattr(packet[TCP], "payload") else b""
+    elif packet.haslayer(Raw):
         payload_bytes = bytes(packet[Raw].load)
     elif len(raw_bytes) > 20:
         payload_bytes = raw_bytes[20:]
@@ -145,10 +149,34 @@ def extract_packet_features(packet, packet_number, base_time=None):
         features["src_port"] = int(packet[UDP].sport)
         features["dst_port"] = int(packet[UDP].dport)
 
-        if features["src_port"] in (500, 4500) or features["dst_port"] in (500, 4500):
+        # RFC 3948: NAT-T UDP 4500 Disambiguation (IKE vs Encapsulated ESP)
+        if (features["src_port"] == 4500 or features["dst_port"] == 4500) and len(payload_bytes) >= 8:
+            if payload_bytes.startswith(b"\x00\x00\x00\x00"):
+                # Non-ESP Marker present -> IKE negotiation over NAT-T
+                features["ike_candidate"] = True
+                features["app_protocol"] = "IKEv2 / NAT-T"
+                features["info"] = "IKE Key Exchange over UDP 4500 (Non-ESP Marker)"
+            else:
+                # Non-ESP Marker absent -> First 4 bytes are SPI (RFC 3948 ESP in UDP)
+                try:
+                    spi_val, seq_val = struct.unpack("!II", payload_bytes[:8])
+                    features["esp"] = True
+                    features["transport_protocol"] = "ESP"
+                    features["app_protocol"] = "IPsec ESP (NAT-T / UDP 4500)"
+                    features["spi"] = f"0x{spi_val:08x}"
+                    features["seq_num"] = int(seq_val)
+                    esp_ciphertext = payload_bytes[8:]
+                    features["payload_length"] = len(esp_ciphertext)
+                    features["shannon_entropy"] = calculate_shannon_entropy(esp_ciphertext)
+                    features["info"] = f"NAT-T ESP Payload (SPI: {features['spi']}, Seq: {features['seq_num']})"
+                    return features
+                except Exception:
+                    features["ike_candidate"] = True
+                    features["app_protocol"] = "IKE / NAT-T"
+        elif features["src_port"] == 500 or features["dst_port"] == 500:
             features["ike_candidate"] = True
-            features["app_protocol"] = "IKE / NAT-T"
-            features["info"] = f"IKE Key Exchange Candidate (Port {features['dst_port']})"
+            features["app_protocol"] = "IKE Key Exchange (UDP 500)"
+            features["info"] = f"IKE Key Exchange (Port {features['dst_port']})"
         elif features["src_port"] == 53 or features["dst_port"] == 53 or packet.haslayer(DNS):
             features["dns"] = True
             features["app_protocol"] = "DNS"

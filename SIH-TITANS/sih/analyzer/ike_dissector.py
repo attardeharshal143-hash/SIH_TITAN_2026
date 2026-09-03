@@ -49,12 +49,12 @@ INTEG_TRANSFORMS = {
     14: {"name": "AUTH_HMAC_SHA2_512_256", "security": "CNSA_2"}
 }
 
-def parse_ike_payload(raw_bytes):
+def parse_ike_payload(raw_bytes, pkt_label="Packet"):
     """
     Performs deep binary dissection of both IKEv1 (ISAKMP RFC 2408/2409)
     and IKEv2 (RFC 7296) SA negotiation payloads and transform attributes.
     """
-    if len(raw_bytes) < 28:
+    if not raw_bytes or len(raw_bytes) < 28:
         return None
 
     try:
@@ -67,6 +67,7 @@ def parse_ike_payload(raw_bytes):
         result = {
             "version": f"IKEv{major_ver}.{minor_ver}",
             "exchange_type": exch_type,
+            "next_payload": next_payload,
             "is_aggressive_mode": is_aggressive,
             "initiator_spi": f"0x{init_spi.hex()}",
             "responder_spi": f"0x{resp_spi.hex()}",
@@ -77,7 +78,8 @@ def parse_ike_payload(raw_bytes):
             "dh_bits": None,
             "prf_algorithm": None,
             "integrity_algorithm": None,
-            "has_real_proposals": False
+            "has_real_proposals": False,
+            "payload_chain": []
         }
 
         offset = 28
@@ -86,6 +88,7 @@ def parse_ike_payload(raw_bytes):
         # Walk generic payload chain
         while curr_payload != 0 and offset < len(raw_bytes) - 4:
             np, res_crit, p_len = struct.unpack("!BBH", raw_bytes[offset:offset+4])
+            result["payload_chain"].append((curr_payload, p_len))
             if p_len < 4 or offset + p_len > len(raw_bytes):
                 break
 
@@ -101,8 +104,6 @@ def parse_ike_payload(raw_bytes):
                     doi = struct.unpack("!I", payload_data[:4])[0]
                     if doi == 1:  # IPsec DOI
                         p_offset = 8
-                        # In IKEv1, next payload field in SA points to proposal
-                        # Next payload header in IKEv1 proposal is inside proposal
                 
                 while p_offset < len(payload_data) - 8:
                     last_sub, _, sub_len, prop_num, proto_id, spi_sz, num_transforms = struct.unpack("!BBHBBBB", payload_data[p_offset:p_offset+8])
@@ -170,7 +171,7 @@ def parse_ike_payload(raw_bytes):
                                         result["key_length"] = val
                                     attr_offset += 4
                                 else:
-                                    # Variable length attribute: 2B Type, 2B Length, V bytes Value
+                                    # Variable length attribute
                                     v_len = val
                                     attr_offset += 4 + v_len
 
@@ -184,48 +185,78 @@ def parse_ike_payload(raw_bytes):
             curr_payload = np
 
         return result
-    except Exception:
+    except Exception as parse_err:
         return None
 
 def extract_all_ike_negotiations(pcap_packets):
     """
     Extracts all IKE negotiations indexed by:
-    1. Exact endpoint pair (ip_src, ip_dst)
-    2. Single IP endpoint
+    1. Exact endpoint pair (ip_src, ip_dst) - bidirectional sorted tuple
+    2. Single IP endpoints (both IPv4 and IPv6 normalized)
     3. Child SA SPI (if present in proposal)
+    Strictly conforms to RFC 3948: Non-ESP Marker is ONLY checked/stripped on UDP port 4500.
     """
     ike_map = {}
     proposal_list = []
 
-    for pkt in pcap_packets:
-        if pkt.haslayer(UDP) and (pkt[UDP].sport in (500, 4500) or pkt[UDP].dport in (500, 4500)):
-            raw_bytes = bytes(pkt[UDP].payload) if pkt.haslayer(UDP) else b""
-            if raw_bytes.startswith(b"\x00\x00\x00\x00"):
-                raw_bytes = raw_bytes[4:]
-            parsed = parse_ike_payload(raw_bytes)
-            if parsed and parsed.get("has_real_proposals"):
+    print(f"[IKE_DISSECTOR] Inspecting {len(pcap_packets)} total frames for IKEv1/IKEv2 proposals...")
+
+    for idx, pkt in enumerate(pcap_packets):
+        try:
+            if pkt.haslayer(UDP) and (pkt[UDP].sport in (500, 4500) or pkt[UDP].dport in (500, 4500)):
+                raw_bytes = bytes(pkt[UDP].payload) if hasattr(pkt[UDP], "payload") else b""
+                is_natt_port = (pkt[UDP].sport == 4500 or pkt[UDP].dport == 4500)
+                
+                # RFC 3948 Section 2.1:
+                # The Non-ESP Marker (0x00000000) MUST NOT be checked or stripped on UDP port 500!
+                # On port 500, 4 leading zeros can be a valid 64-bit IKE Initiator SPI.
+                if is_natt_port:
+                    has_natt_marker = raw_bytes.startswith(b"\x00\x00\x00\x00")
+                    if has_natt_marker:
+                        raw_bytes = raw_bytes[4:]
+                    elif len(raw_bytes) >= 4:
+                        # Non-ESP marker absent on UDP 4500 -> It is NAT-T ESP encapsulated ciphertext, skip IKE parse
+                        continue
+
+                parsed = parse_ike_payload(raw_bytes, pkt_label=f"Pkt #{idx+1}")
+                
                 ip_src = "0.0.0.0"
                 ip_dst = "0.0.0.0"
                 if pkt.haslayer(IP):
-                    ip_src = str(pkt[IP].src)
-                    ip_dst = str(pkt[IP].dst)
+                    ip_src = str(pkt[IP].src).strip().lower()
+                    ip_dst = str(pkt[IP].dst).strip().lower()
                 elif pkt.haslayer(IPv6):
-                    ip_src = str(pkt[IPv6].src)
-                    ip_dst = str(pkt[IPv6].dst)
+                    ip_src = str(pkt[IPv6].src).strip().lower()
+                    ip_dst = str(pkt[IPv6].dst).strip().lower()
 
-                pair_key = tuple(sorted([ip_src, ip_dst]))
-                ike_map[pair_key] = parsed
-                ike_map[ip_src] = parsed
-                ike_map[ip_dst] = parsed
+                if parsed and parsed.get("has_real_proposals"):
+                    pair_key = tuple(sorted([ip_src, ip_dst]))
+                    ike_map[pair_key] = parsed
+                    ike_map[ip_src] = parsed
+                    ike_map[ip_dst] = parsed
 
-                for c_spi in parsed.get("child_spis", []):
-                    ike_map[c_spi.lower()] = parsed
+                    for c_spi in parsed.get("child_spis", []):
+                        ike_map[c_spi.lower()] = parsed
 
-                proposal_list.append(parsed)
+                    proposal_list.append(parsed)
+                    print(f"[IKE_DISSECTOR] [Pkt #{idx+1}] Extracted IKE proposal for {ip_src} <-> {ip_dst} (Pair: {pair_key}) => {parsed.get('encryption_algorithm')} / {parsed.get('dh_group')}")
+                else:
+                    if parsed:
+                        chain_str = str(parsed.get('payload_chain', []))
+                        print(f"[IKE_DISSECTOR] [Pkt #{idx+1}] UDP {pkt[UDP].sport}->{pkt[UDP].dport} ({ip_src} -> {ip_dst}) | {parsed.get('version')} Exch={parsed.get('exchange_type')} NextPayload={parsed.get('next_payload')} | Chain: {chain_str} (No SA Type 33/1)")
+                    else:
+                        hex_preview = raw_bytes[:16].hex() if raw_bytes else 'EMPTY'
+                        print(f"[IKE_DISSECTOR] [Pkt #{idx+1}] UDP {pkt[UDP].sport}->{pkt[UDP].dport} ({ip_src} -> {ip_dst}): Invalid IKE header/payload bytes (len={len(raw_bytes)}, hex={hex_preview})")
+        except Exception as pkt_err:
+            print(f"[IKE_DISSECTOR] [WARNING] Skipped malformed packet #{idx+1}: {pkt_err}")
+            continue
 
     if proposal_list:
         ike_map["global_first"] = proposal_list[0]
         ike_map["all_proposals"] = proposal_list
+        print(f"[IKE_DISSECTOR] Successfully extracted {len(proposal_list)} valid IKE proposals across capture.")
+    else:
+        print("[IKE_DISSECTOR] Zero valid IKE proposals found in capture window (all SAs will default to Pre-established).")
 
     return ike_map
 

@@ -38,9 +38,15 @@ def generate_remediation_scripts(report_data):
     # 2. Check for Specific Vulnerability Indicators
     has_replay = any(sa.get("anti_replay", {}).get("duplicates", 0) > 0 for sa in sas) or (sec.get("anti_replay_audit", {}).get("replay_risk") == "CRITICAL")
     
-    weak_sas = [sa for sa in sas if "DES" in str(sa.get("inferred_cipher", "")) or "IDEA" in str(sa.get("inferred_cipher", "")) or "Legacy" in str(sa.get("inferred_cipher", ""))]
+    weak_sas = [sa for sa in sas if "DES" in str(sa.get("inferred_cipher", "")) or "IDEA" in str(sa.get("inferred_cipher", "")) or "Legacy" in str(sa.get("inferred_cipher", "")) or sa.get("pqc_score") == 0]
     has_downgrade = len(weak_sas) > 0
-    weak_cipher_name = weak_sas[0].get("inferred_cipher", "Legacy Cipher") if has_downgrade else ""
+    if has_downgrade:
+        weak_spis = [sa.get("spi", "") for sa in weak_sas if sa.get("spi")]
+        downgrade_spis_str = f"SAs {', '.join(weak_spis)}" if len(weak_spis) > 1 else (f"SA {weak_spis[0]}" if weak_spis else "SA")
+        weak_ciphers = list(dict.fromkeys(sa.get("inferred_cipher", "Legacy") for sa in weak_sas))
+        weak_cipher_name = f"{', '.join(weak_ciphers)} in {downgrade_spis_str}"
+    else:
+        weak_cipher_name = ""
 
     has_zero_entropy = (crypto.get("encryption_enforced") and avg_entropy < 5.5)
     is_non_ipsec = not sec.get("ipsec_tunnel_detected", True)

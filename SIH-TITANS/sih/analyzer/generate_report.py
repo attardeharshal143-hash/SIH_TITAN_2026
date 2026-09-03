@@ -67,12 +67,18 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     if sa_audits:
         weak_sas = [sa for sa in sa_audits if sa.get("pqc_score") == 0 or "Legacy" in str(sa.get("inferred_cipher", "")) or "DES" in str(sa.get("inferred_cipher", "")) or "VULNERABLE" in str(sa.get("pqc_status", ""))]
         if weak_sas:
+            weak_spis = [sa.get("spi", "") for sa in weak_sas if sa.get("spi")]
+            if len(weak_spis) == 1:
+                downgrade_desc = f"SA {weak_spis[0]}"
+            else:
+                downgrade_desc = f"SAs {', '.join(weak_spis)}"
+
             weak_sa = weak_sas[0]
             cipher_inference["inferred_cipher"] = weak_sa.get("inferred_cipher")
             adv_audit["pqc_readiness"]["pqc_score"] = 0
-            adv_audit["pqc_readiness"]["pqc_status"] = f"QUANTUM-VULNERABLE (Downgrade in SA {weak_sa.get('spi', '')})"
+            adv_audit["pqc_readiness"]["pqc_status"] = f"QUANTUM-VULNERABLE (Downgrade in {downgrade_desc})"
             sec_grade = "C" if r_score <= 75 else "F"
-            comp_status = f"NON-COMPLIANT (Cryptographic Downgrade in SA {weak_sa.get('spi', '')})"
+            comp_status = f"NON-COMPLIANT (Cryptographic Downgrade in {downgrade_desc})"
             r_score = max(r_score, 75)
             r_level = "HIGH"
 
