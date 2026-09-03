@@ -63,7 +63,7 @@ def generate_remediation_scripts(report_data):
     elif has_downgrade:
         banner = f"# [REMEDIATION ACTION: Cryptographic Downgrade Detected ({weak_cipher_name})]\n# Replace obsolete cipher proposals with NSA CNSA 2.0 compliant AES-256-GCM AEAD:"
     elif has_replay:
-        banner = f"# [REMEDIATION ACTION: Anti-Replay Sequence Violation Detected]\n# Enforce strict RFC 4301 Anti-Replay window checking on gateway:"
+        banner = f"# [REMEDIATION ADVISORY: Replay / duplicate sequence anomaly; potential anti-replay violation]\n# Audit and enforce RFC 4303 anti-replay window checking on gateway:"
     elif is_non_ipsec:
         banner = f"# [REMEDIATION ACTION: Unencrypted Network Traffic Observed]\n# Deploy site-to-site IPsec tunnel to protect transit communications:"
     else:

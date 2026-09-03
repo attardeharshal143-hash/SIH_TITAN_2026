@@ -238,7 +238,7 @@
                 <div class="divide-y divide-outline-variant/20 font-mono">
                     <div class="py-2 flex justify-between"><span class="text-outline">Harvest-Now-Decrypt-Later:</span><span class="font-bold text-secondary" id="rep-pqc-hndl">RESISTANT (AES-256)</span></div>
                     <div class="py-2 flex justify-between"><span class="text-outline">Weak Cipher Audit:</span><span class="font-bold text-secondary" id="rep-pqc-weak">0 Detected (DES/3DES/MD5: 0)</span></div>
-                    <div class="py-2 flex justify-between"><span class="text-outline">CNSA 2.0 Compliance:</span><span class="font-bold text-secondary" id="rep-pqc-cnsa">COMPLIANT</span></div>
+                    <div class="py-2 flex justify-between"><span class="text-outline">CNSA 2.0 Algorithm Alignment:</span><span class="font-bold text-secondary" id="rep-pqc-cnsa">ALIGNED</span></div>
                 </div>
             </div>
         </div>
@@ -367,9 +367,10 @@
         <div class="flex flex-wrap justify-between items-center gap-3 mb-6 pb-3 border-b border-outline-variant/20">
             <div>
                 <span class="text-[10px] font-bold tracking-widest uppercase font-mono text-primary block">SECTION 07 / 07</span>
-                <h2 class="text-xl font-bold text-on-surface">7. Actionable Hardening Roadmap & SIEM Integration</h2>
+                <h2 class="text-xl font-bold text-on-surface">7. Reference Hardened Configuration Example & SIEM Integration</h2>
+                <p class="text-[11px] text-outline font-mono mt-0.5">Illustrative reference example only. Deployment applicability must be validated against organizational policy.</p>
             </div>
-            <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">SOC DEPLOYMENT READY</span>
+            <span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold font-mono">REFERENCE ARCHITECTURE</span>
         </div>
         <div class="space-y-3 mb-6" id="rep-hardening-steps-container"></div>
         <div class="rounded-xl border border-outline-variant/30 overflow-hidden">
@@ -577,8 +578,17 @@ function renderAll7Sections(data) {
         if (elHndl) { elHndl.textContent = 'N/A (Cleartext Stream)'; elHndl.className = 'font-bold text-outline'; }
         if (elWeak) { elWeak.textContent = 'N/A (Non-VPN)'; elWeak.className = 'font-bold text-outline'; }
         if (elCnsa) { elCnsa.textContent = 'NON-VPN'; elCnsa.className = 'font-bold text-outline'; }
-    } else {
-        if (document.getElementById('rep-crypto-enc')) document.getElementById('rep-crypto-enc').textContent = crypto.encryption_enforced ? 'Enforced (ESP Protocol 50)' : 'NOT ENFORCED';
+        var encLabel = 'NOT ENFORCED';
+        if (crypto.encryption_enforced) {
+            if (summary.natt_esp_packets > 0 && (!summary.native_esp_packets || summary.native_esp_packets === 0)) {
+                encLabel = 'Enforced (NAT-T ESP-in-UDP / UDP 4500)';
+            } else if (summary.native_esp_packets > 0 && (!summary.natt_esp_packets || summary.natt_esp_packets === 0)) {
+                encLabel = 'Enforced (Native ESP Protocol 50)';
+            } else {
+                encLabel = 'Enforced (IPsec ESP Encapsulation)';
+            }
+        }
+        if (document.getElementById('rep-crypto-enc')) document.getElementById('rep-crypto-enc').textContent = encLabel;
         if (document.getElementById('rep-crypto-spis')) {
             if (crypto.distinct_spis && crypto.distinct_spis.length > 0) {
                 document.getElementById('rep-crypto-spis').textContent = crypto.distinct_spis.join(', ');
@@ -624,7 +634,7 @@ function renderAll7Sections(data) {
             }
             if (elHndl) { elHndl.textContent = 'RESISTANT (AES-256)'; elHndl.className = 'font-bold text-emerald-600'; }
             if (elWeak) { elWeak.textContent = '0 Detected (DES/3DES/MD5: 0)'; elWeak.className = 'font-bold text-emerald-600'; }
-            if (elCnsa) { elCnsa.textContent = 'COMPLIANT (CNSA 2.0)'; elCnsa.className = 'font-bold text-emerald-600'; }
+            if (elCnsa) { elCnsa.textContent = 'ALIGNED (Algorithms)'; elCnsa.className = 'font-bold text-emerald-600'; }
         } else {
             if (document.getElementById('rep-pqc-score-text')) {
                 document.getElementById('rep-pqc-score-text').textContent = pqcScore + '% Safe (' + pqcStatus + ')';
@@ -641,7 +651,11 @@ function renderAll7Sections(data) {
     }
 
     // Per-Tunnel / Per-SA Partitioned Table
+    // Per-Tunnel / Per-SA Partitioned Table
     var sas = data.security_associations || [];
+    var establishedSas = sas.filter(function(s) { return !s.is_suspicious; });
+    var suspiciousSas = sas.filter(function(s) { return s.is_suspicious; });
+
     var saContainer = document.getElementById('rep-multi-sa-container');
     var saTbody = document.getElementById('rep-multi-sa-tbody');
     var saPill = document.getElementById('rep-sa-count-pill');
@@ -649,22 +663,48 @@ function renderAll7Sections(data) {
     if (saContainer && saTbody) {
         if (sas.length > 0) {
             saContainer.classList.remove('hidden');
-            if (saPill) saPill.textContent = sas.length + ' ACTIVE SA' + (sas.length > 1 ? 's' : '');
+            if (saPill) {
+                saPill.textContent = establishedSas.length + ' ACTIVE ESTABLISHED SA' + (establishedSas.length > 1 ? 's' : '') + (suspiciousSas.length > 0 ? (' (' + suspiciousSas.length + ' Unrecognized SPIs)') : '');
+            }
             saTbody.innerHTML = '';
-            sas.forEach(function(sa) {
+            
+            // 1. Render Established SAs
+            establishedSas.forEach(function(sa) {
                 var isWeak = sa.pqc_score === 0 || (sa.inferred_cipher && (sa.inferred_cipher.indexOf('DES') !== -1 || sa.inferred_cipher.indexOf('Legacy') !== -1));
                 var pqcBadgeClass = isWeak ? 'bg-red-500/15 text-red-600 border border-red-500/30' : (sa.pqc_score >= 80 ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-700 border border-amber-500/30');
                 var tr = document.createElement('tr');
                 tr.className = 'hover:bg-surface-container transition-colors';
-                tr.innerHTML = '<td class="p-3 font-bold text-primary">' + (sa.spi || '0x00000000') + '</td>' +
-                    '<td class="p-3 text-on-surface">' + (sa.endpoints || 'Gateway') + '</td>' +
+                tr.innerHTML = '<td class="p-3 font-bold text-primary font-mono">' + (sa.spi || '0x00000000') + ' <span class="px-1.5 py-0.2 rounded text-[9px] bg-secondary/15 text-secondary">Established</span></td>' +
+                    '<td class="p-3 text-on-surface font-mono">' + (sa.endpoints || 'Gateway') + '</td>' +
                     '<td class="p-3 text-on-surface">' + (sa.packet_count || 0) + ' pkts (' + (sa.traffic_share_pct || 0) + '%)</td>' +
                     '<td class="p-3 ' + (isWeak ? 'text-red-600 font-bold' : 'text-on-surface') + '">' + (sa.inferred_cipher || 'AES-GCM-256') + '</td>' +
-                    '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + pqcBadgeClass + '">' + (sa.pqc_score || 0) + '% Safe</span></td>' +
+                    '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + pqcBadgeClass + '">' + (sa.pqc_score !== null && sa.pqc_score !== undefined ? (sa.pqc_score + '% Safe') : 'Indeterminate') + '</span></td>' +
                     '<td class="p-3 text-on-surface">' + ((sa.eta_profile && sa.eta_profile.application_category) ? sa.eta_profile.application_category : 'Standard Flow') + '</td>' +
                     '<td class="p-3 ' + (sa.anti_replay && sa.anti_replay.duplicates > 0 ? 'text-red-600 font-bold' : 'text-emerald-700') + '">' + (sa.anti_replay ? sa.anti_replay.status : 'OK') + '</td>';
                 saTbody.appendChild(tr);
             });
+
+            // 2. Render Suspicious / Probe SPIs with distinct Anomaly Callout
+            if (suspiciousSas.length > 0) {
+                suspiciousSas.slice(0, 10).forEach(function(sa) {
+                    var tr = document.createElement('tr');
+                    tr.className = 'hover:bg-amber-500/10 bg-amber-500/[0.04] transition-colors border-l-2 border-amber-500';
+                    tr.innerHTML = '<td class="p-3 font-bold text-amber-700 font-mono flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">info</span> ' + (sa.spi || '0x00000000') + '</td>' +
+                        '<td class="p-3 text-on-surface-variant font-mono">' + (sa.endpoints || 'Gateway') + '</td>' +
+                        '<td class="p-3 text-on-surface-variant">' + (sa.packet_count || 0) + ' pkts (Probe)</td>' +
+                        '<td class="p-3 text-amber-700 font-medium">Unrecognized ESP SPI / Probe-like Traffic</td>' +
+                        '<td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">Probe-like</span></td>' +
+                        '<td class="p-3 text-outline italic">Excluded from SAs</td>' +
+                        '<td class="p-3 text-outline font-mono">No IKE in trace</td>';
+                    saTbody.appendChild(tr);
+                });
+                if (suspiciousSas.length > 10) {
+                    var trMore = document.createElement('tr');
+                    trMore.className = 'bg-amber-500/[0.06] text-center font-mono text-xs text-amber-800';
+                    trMore.innerHTML = '<td colspan="7" class="p-2.5 font-bold">... and ' + (suspiciousSas.length - 10) + ' additional unrecognized ESP probe SPIs detected (total ' + suspiciousSas.reduce(function(a,b){return a+(b.packet_count||0);},0) + ' probe frames)</td>';
+                    saTbody.appendChild(trMore);
+                }
+            }
         } else {
             saContainer.classList.add('hidden');
         }
@@ -681,22 +721,45 @@ function renderAll7Sections(data) {
         var icmpPkts = summary.icmp_packets || 0;
         var otherPkts = summary.other_packets || 0;
 
-        var rows = [
-            { name: 'ESP Payload Encryption (Protocol 50)', count: espPkts, secure: true },
-            { name: 'Authentication Header AH (Protocol 51)', count: ahPkts, secure: false },
-            { name: 'IKE / NAT-T (UDP Port 500 / 4500)', count: ikePkts, secure: false },
-            { name: 'DNS Resolution Queries (UDP Port 53)', count: dnsPkts, secure: false },
-            { name: 'Other UDP Datagrams (Non-VPN / Transport)', count: otherUdp, secure: false },
-            { name: 'TCP Transport Streams', count: tcpPkts, secure: false },
-            { name: 'ICMP Diagnostic Messages', count: icmpPkts, secure: false }
-        ];
+        var nativeEsp = summary.native_esp_packets || 0;
+        var nattEsp = summary.natt_esp_packets || 0;
+        var ike500 = summary.ike_port_500 || 0;
+        var ike4500 = summary.ike_port_4500 || 0;
+
+        var rows = [];
+        if (nativeEsp > 0 && nattEsp > 0) {
+            rows.push({ name: 'Native IPsec ESP (Protocol 50)', count: nativeEsp, secure: true });
+            rows.push({ name: 'NAT-T Encapsulated ESP (UDP Port 4500)', count: nattEsp, secure: true });
+        } else if (nattEsp > 0) {
+            rows.push({ name: 'NAT-T Encapsulated ESP (UDP Port 4500)', count: nattEsp, secure: true });
+        } else if (nativeEsp > 0 || espPkts > 0) {
+            rows.push({ name: 'Native IPsec ESP (Protocol 50)', count: espPkts, secure: true });
+        }
+
+        if (ahPkts > 0) {
+            rows.push({ name: 'Authentication Header AH (Protocol 51)', count: ahPkts, secure: false });
+        }
+
+        if (ike500 > 0 && ike4500 > 0) {
+            rows.push({ name: 'IKE Key Exchange (UDP Port 500)', count: ike500, secure: false });
+            rows.push({ name: 'IKE Key Exchange over NAT-T (UDP Port 4500)', count: ike4500, secure: false });
+        } else if (ike4500 > 0) {
+            rows.push({ name: 'IKE Key Exchange over NAT-T (UDP Port 4500)', count: ike4500, secure: false });
+        } else if (ikePkts > 0) {
+            rows.push({ name: 'IKE Key Exchange (UDP Port 500)', count: ikePkts, secure: false });
+        }
+
+        rows.push({ name: 'DNS Resolution Queries (UDP Port 53)', count: dnsPkts, secure: false });
+        rows.push({ name: 'Other UDP Datagrams (Non-VPN / Transport)', count: otherUdp, secure: false });
+        rows.push({ name: 'TCP Transport Streams', count: tcpPkts, secure: false });
+        rows.push({ name: 'ICMP Diagnostic Messages', count: icmpPkts, secure: false });
         if (otherPkts > 0) {
             rows.push({ name: 'Other Protocols', count: otherPkts, secure: false });
         }
         rows.forEach(function(r) {
             var tr = document.createElement('tr');
             var pct = totalPkts > 0 ? ((r.count / totalPkts) * 100).toFixed(1) + '%' : '0.0%';
-            var cls = r.secure ? '<span class="text-secondary font-bold">Encrypted (Secure)</span>' : '<span class="text-outline">Cleartext / Control</span>';
+            var cls = r.secure ? '<span class="text-secondary font-bold">Encrypted Payload</span>' : '<span class="text-outline">Cleartext / Control</span>';
             tr.innerHTML = '<td class="p-3 font-medium text-on-surface">' + r.name + '</td>' +
                 '<td class="p-3 text-center">' + r.count.toLocaleString() + '</td>' +
                 '<td class="p-3 text-center font-bold text-primary">' + pct + '</td>' +
@@ -758,7 +821,7 @@ function renderAll7Sections(data) {
                 mitreBody.appendChild(tr);
             });
         } else {
-            mitreBody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-outline font-mono text-xs">No active MITRE ATT&CK threat techniques or vulnerability indicators triggered in this capture trace.</td></tr>';
+            mitreBody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-outline font-mono text-xs">No adversary tactics or active tunnel exfiltration techniques were observed within this specific capture window (absence of evidence in a captured trace does not prove the absence of adversarial activity).</td></tr>';
         }
     }
 

@@ -12,9 +12,12 @@ ENCR_TRANSFORMS = {
     7: {"name": "AES-CBC", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
     12: {"name": "AES-CBC", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
     14: {"name": "AES-CTR", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
-    18: {"name": "AES-CCM-8", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
-    19: {"name": "AES-CCM-12", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
-    20: {"name": "AES-CCM-16", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
+    15: {"name": "AES-CCM-8", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
+    16: {"name": "AES-CCM-12", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
+    17: {"name": "AES-CCM-16", "key_bits": 128, "security": "SECURE", "quantum": "PARTIAL"},
+    18: {"name": "AES-GCM-8", "key_bits": 128, "security": "SECURE", "quantum": "GROVER_SAFE"},
+    19: {"name": "AES-GCM-12", "key_bits": 128, "security": "SECURE", "quantum": "GROVER_SAFE"},
+    20: {"name": "AES-GCM-16", "key_bits": 128, "security": "CNSA_2", "quantum": "GROVER_SAFE"},
     28: {"name": "AES-GCM-16", "key_bits": 256, "security": "CNSA_2", "quantum": "GROVER_SAFE"},
     29: {"name": "ChaCha20-Poly1305", "key_bits": 256, "security": "CNSA_2", "quantum": "GROVER_SAFE"}
 }

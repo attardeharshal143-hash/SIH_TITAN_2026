@@ -125,11 +125,13 @@ def perform_advanced_security_audit(arg1, arg2=None, ike_details=None, raw_packe
         pqc_score = sym_score + kem_score + prf_score
         if is_weak_cipher or is_weak_dh:
             pqc_score = 0 if (is_weak_cipher and is_weak_dh) else min(20, pqc_score)
-            pqc_status = f"QUANTUM-VULNERABLE (Downgrade: {encr_name}/{dh_name})"
+            pqc_status = f"No post-quantum protection observed; legacy/weak parameters negotiated ({encr_name}/{dh_name})"
+        elif is_pqc_kem:
+            pqc_status = "QUANTUM-RESISTANT (CNSA 2.0 Complete / PQC KEM Negotiated)"
         elif pqc_score >= 80:
-            pqc_status = "QUANTUM-RESISTANT (CNSA 2.0 Complete)" if is_pqc_kem else "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
+            pqc_status = "No post-quantum key exchange mechanism observed in parsed IKE negotiation (Classical CNSA 2.0 Symmetric Tier)"
         else:
-            pqc_status = "PARTIALLY QUANTUM-RESISTANT"
+            pqc_status = "No post-quantum key exchange mechanism observed in parsed IKE negotiation (Classical key exchange only)"
 
         downgrade_checks = [
             {
@@ -175,7 +177,7 @@ def perform_advanced_security_audit(arg1, arg2=None, ike_details=None, raw_packe
         ]
 
         pqc_score = None
-        pqc_status = "Indeterminate (Key Exchange Not in Capture Window)"
+        pqc_status = "PQC Status: Indeterminate (Absence of captured IKE negotiation does not indicate presence or lack of PQC capability)."
         pqc_recommendations = [
             f"ESP payload exhibits Mean Byte Shannon Entropy = {avg_entropy} bits/byte.",
             "Note: Shannon entropy measures byte uniformity (0.0-8.0 b/B). High entropy indicates pseudorandom byte distribution (characteristic of both cryptographic ciphertext and random generator filler), but does not confirm cryptographic algorithm strength or key integrity.",
@@ -202,11 +204,11 @@ def perform_advanced_security_audit(arg1, arg2=None, ike_details=None, raw_packe
     if dup_seqs >= 3 or (dup_seqs > 0 and (dup_seqs / max(total_packets, 1)) >= 0.10):
         mitre_mappings.append({
             "technique_id": "T1557",
-            "technique_name": "Adversary-in-the-Middle (Traffic Injection & Replay Attack)",
+            "technique_name": "Replay / Duplicate Sequence Anomaly (MITRE ATT&CK T1557 Candidate)",
             "tactic": "Credential Access / Defense Evasion",
-            "severity": "CRITICAL",
-            "finding_ref": f"{dup_seqs} duplicate ESP sequence numbers detected in IPsec packet stream (RFC 4301 anti-replay window violated).",
-            "mitigation": "Enforce strict Anti-Replay window checking (RFC 4303 64/128-packet window) and discard replayed sequence packets at VPN gateway."
+            "severity": "HIGH - Candidate",
+            "finding_ref": f"Replay / duplicate sequence anomaly detected; potential anti-replay violation ({dup_seqs} duplicate packets observed across distinct sequence values). Classified as MITRE ATT&CK T1557 Candidate with Severity: HIGH - Candidate (additional host/gateway correlation required to confirm malicious injection vs. network retransmission).",
+            "mitigation": "Audit and enforce anti-replay window checking (RFC 4303 64/128-packet window) to guard against replay/duplicate sequence anomalies; discard duplicate sequence packets at VPN gateway."
         })
 
     return {

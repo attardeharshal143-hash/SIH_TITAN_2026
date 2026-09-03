@@ -12,6 +12,7 @@ from analyzer.ike_dissector import extract_all_ike_negotiations
 def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap", reports_dir=None, raw_packets=None, ike_map=None):
     now = datetime.utcnow()
     report_id = f"REP-{now.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    pcap_name = Path(pcap_name).name
     
     unique_src_ips = sorted(list(set(x["src_ip"] for x in features if x.get("src_ip"))))
     unique_dst_ips = sorted(list(set(x["dst_ip"] for x in features if x.get("dst_ip"))))
@@ -27,13 +28,26 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     icmp_count = 0
     other_count = 0
 
+    native_esp_count = 0
+    natt_esp_count = 0
+    ike_port500_count = 0
+    ike_port4500_count = 0
+
     for x in features:
         if x.get("esp"):
             esp_count += 1
+            if x.get("src_port") == 4500 or x.get("dst_port") == 4500 or "NAT-T" in str(x.get("app_protocol", "")):
+                natt_esp_count += 1
+            else:
+                native_esp_count += 1
         elif x.get("ah"):
             ah_count += 1
         elif x.get("ike_candidate") or (x.get("transport_protocol") == "UDP" and (x.get("src_port") in (500, 4500) or x.get("dst_port") in (500, 4500))):
             ike_count += 1
+            if x.get("src_port") == 4500 or x.get("dst_port") == 4500:
+                ike_port4500_count += 1
+            else:
+                ike_port500_count += 1
         elif x.get("dns") or (x.get("transport_protocol") == "UDP" and (x.get("src_port") == 53 or x.get("dst_port") == 53)):
             dns_count += 1
         elif x.get("transport_protocol") == "UDP":
@@ -65,7 +79,7 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     r_level = assessment.get("risk_level", "LOW")
 
     if sa_audits:
-        weak_sas = [sa for sa in sa_audits if sa.get("pqc_score") == 0 or "Legacy" in str(sa.get("inferred_cipher", "")) or "DES" in str(sa.get("inferred_cipher", "")) or "VULNERABLE" in str(sa.get("pqc_status", ""))]
+        weak_sas = [sa for sa in sa_audits if not sa.get("is_suspicious") and ((sa.get("pqc_score") == 0 and sa.get("pqc_score") is not None) or "Legacy" in str(sa.get("inferred_cipher", "")) or "DES" in str(sa.get("inferred_cipher", "")) or "VULNERABLE" in str(sa.get("pqc_status", "")))]
         if weak_sas:
             weak_spis = [sa.get("spi", "") for sa in weak_sas if sa.get("spi")]
             if len(weak_spis) == 1:
@@ -76,7 +90,7 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             weak_sa = weak_sas[0]
             cipher_inference["inferred_cipher"] = weak_sa.get("inferred_cipher")
             adv_audit["pqc_readiness"]["pqc_score"] = 0
-            adv_audit["pqc_readiness"]["pqc_status"] = f"QUANTUM-VULNERABLE (Downgrade in {downgrade_desc})"
+            adv_audit["pqc_readiness"]["pqc_status"] = f"No post-quantum protection observed (Cryptographic Downgrade in {downgrade_desc})"
             sec_grade = "C" if r_score <= 75 else "F"
             comp_status = f"NON-COMPLIANT (Cryptographic Downgrade in {downgrade_desc})"
             r_score = max(r_score, 75)
@@ -95,13 +109,22 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             "compliance_status": comp_status,
             "risk_score": r_score,
             "risk_level": r_level,
-            "summary_text": f"Traffic trace {pcap_name} was evaluated by the TITAN Inspection Engine. Security posture rated Grade {sec_grade} with a normalized risk index of {r_score}/100."
+            "summary_text": (
+                f"Traffic trace {pcap_name} was evaluated by the TITAN Inspection Engine. "
+                f"Observed packet parameters yield a protocol inspection rating of Grade {sec_grade} (Normalized Risk Index: {r_score}/100). "
+                f"{'Composite risk posture is driven by a HIGH — Candidate replay anomaly alongside co-occurring non-IPsec traffic frames. ' if 'Replay Anomaly' in comp_status else ''}"
+                f"Note: This score evaluates audited protocol hygiene in this capture window; it does not represent an overall endpoint or organizational security audit."
+            )
         },
         "traffic_summary": {
             "packets_analyzed": len(features),
             "esp_packets": esp_count,
+            "native_esp_packets": native_esp_count,
+            "natt_esp_packets": natt_esp_count,
             "ah_packets": ah_count,
             "ike_candidates": ike_count,
+            "ike_port_500": ike_port500_count,
+            "ike_port_4500": ike_port4500_count,
             "dns_packets": dns_count,
             "udp_packets": other_udp_count,
             "other_udp_packets": other_udp_count,
@@ -109,7 +132,8 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
             "tcp_packets": tcp_count,
             "icmp_packets": icmp_count,
             "other_packets": other_count,
-            "active_security_associations": len(sa_audits)
+            "active_security_associations": len([s for s in sa_audits if not s.get("is_suspicious")]),
+            "suspicious_spis_count": len([s for s in sa_audits if s.get("is_suspicious")])
         },
         "cryptographic_analysis": assessment.get("cryptographic_posture", {}),
         "leakage_assessment": assessment.get("leakage_assessment", {}),
@@ -122,6 +146,8 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
         "mitre_attack_mapping": adv_audit.get("mitre_attack_mapping", []),
         "siem_event": adv_audit.get("siem_event", {}),
         "security_associations": sa_audits,
+        "established_security_associations": [s for s in sa_audits if not s.get("is_suspicious")],
+        "suspicious_security_associations": [s for s in sa_audits if s.get("is_suspicious")],
         "endpoints": {
             "source_ips": unique_src_ips,
             "destination_ips": unique_dst_ips
@@ -140,6 +166,8 @@ def build_full_report(features, assessment, ml_result, pcap_name="traffic.pcap",
     }
 
     # Generate automated hardening remediation scripts
+    report["findings"] = assessment.get("findings", [])
+    report["remediations"] = assessment.get("remediations", [])
     report["remediation_scripts"] = generate_remediation_scripts(report)
 
     if reports_dir:

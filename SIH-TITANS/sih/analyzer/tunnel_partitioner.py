@@ -56,7 +56,7 @@ def partition_and_audit_tunnels(features, ike_map=None):
 
             # Perform 4-Tier IKE Proposal Matching with explicit debug tracing
             sa_ike = None
-            tier_matched = "Tier 0: Pre-established SA (No matching IKE proposal in capture window)"
+            tier_matched = "Tier 0: Pre-established SA (No corresponding IKE negotiation observed in capture trace)"
             
             # Tier 1: Direct Child SA SPI match
             spi_lookup_key = spi_key.lower() if spi_key else ""
@@ -145,26 +145,34 @@ def partition_and_audit_tunnels(features, ike_map=None):
                 pqc_score = sym_score + kem_score + mac_score
                 if is_weak_cipher or is_weak_dh:
                     pqc_score = 0 if (is_weak_cipher and is_weak_dh) else min(20, pqc_score)
-                    pqc_status = f"QUANTUM-VULNERABLE (Downgrade: {encr}/{dh})"
+                    pqc_status = f"No post-quantum protection observed; legacy/weak parameters ({encr}/{dh})"
                 elif pqc_score >= 80:
-                    pqc_status = "QUANTUM-RESISTANT (CNSA 2.0 Complete)" if ("ML-KEM" in dh or "Kyber" in dh) else "QUANTUM-RESISTANT (CNSA 2.0 Symmetric Tier)"
+                    pqc_status = "QUANTUM-RESISTANT (CNSA 2.0 Complete)" if ("ML-KEM" in dh or "Kyber" in dh) else "No post-quantum key exchange observed (Classical CNSA 2.0 Symmetric Tier)"
                 else:
-                    pqc_status = "PARTIALLY RESISTANT"
+                    pqc_status = "No post-quantum key exchange observed (Classical key exchange only)"
             else:
                 pqc_score = None
                 pqc_status = "Indeterminate (Handshake Not in Capture Window)"
 
+            # An SPI is classified as unrecognized/suspicious probe traffic if:
+            # 1. No matching IKE handshake (sa_ike is None), and very few frames (< 5 frames)
+            # OR explicitly starts with known synthetic anomaly prefix (e.g. 0xdead)
+            is_probe_spi = (sa_ike is None and len(sa_feats) < 5) or str(spi_key).lower().startswith("0xdead")
+            sa_status = "Unrecognized ESP SPI / Probe-like Traffic" if is_probe_spi else "Active Established SA"
+
             sa_audits.append({
                 "spi": spi_key,
                 "endpoints": endpoints_str,
-                "protocol": "ESP (Protocol 50)" if any(f.get("esp") for f in sa_feats) else "AH (Protocol 51)",
+                "protocol": ("ESP-in-UDP / NAT-T (UDP 4500)" if any(f.get("is_natt") or f.get("src_port") == 4500 or f.get("dst_port") == 4500 for f in sa_feats) else ("Native ESP (Protocol 50)" if any(f.get("esp") for f in sa_feats) else "AH (Protocol 51)")),
                 "packet_count": len(sa_feats),
                 "traffic_share_pct": round(len(sa_feats) / len(features) * 100, 1),
                 "operating_mode": c_infer.get("operating_mode"),
-                "inferred_cipher": c_infer.get("inferred_cipher"),
-                "integrity_algorithm": c_infer.get("integrity_algorithm"),
-                "pqc_score": pqc_score,
-                "pqc_status": pqc_status,
+                "inferred_cipher": ("Unrecognized ESP SPI / Probe-like Traffic" if is_probe_spi else c_infer.get("inferred_cipher")),
+                "integrity_algorithm": ("Indeterminate (No IKE Trace)" if is_probe_spi else c_infer.get("integrity_algorithm")),
+                "pqc_score": None if is_probe_spi else pqc_score,
+                "pqc_status": ("Unrecognized ESP SPI / Probe-like Traffic" if is_probe_spi else pqc_status),
+                "is_suspicious": is_probe_spi,
+                "sa_status": sa_status,
                 "eta_profile": {
                     "application_category": eta_prof.get("application_category"),
                     "eta_confidence": eta_prof.get("eta_confidence"),

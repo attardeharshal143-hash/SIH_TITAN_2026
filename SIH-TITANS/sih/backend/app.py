@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import time
 import sys
@@ -255,7 +255,8 @@ def analyze_pcap():
             "message": "Invalid file type. Supported capture formats: .pcap, .pcapng, .cap"
         }), 400
 
-    filepath = UPLOAD_DIR / filename
+    safe_name = f"{int(time.time() * 1000)}_{filename}"
+    filepath = UPLOAD_DIR / safe_name
     try:
         file.save(filepath)
     except Exception:
@@ -384,10 +385,13 @@ def list_reports():
                 reports_list.append({
                     "report_id": data.get("report_id"),
                     "report_name": data.get("report_name", json_file.stem),
+                    "pcap_file": data.get("pcap_file", "capture.pcap"),
                     "generated_at": data.get("generated_at"),
                     "generated_date_str": data.get("generated_date_str", "Recently"),
                     "status": data.get("status", "Completed"),
                     "packets_analyzed": data.get("traffic_summary", {}).get("packets_analyzed", 0),
+                    "security_grade": data.get("executive_summary", {}).get("security_grade") or data.get("security_assessment", {}).get("security_grade", "A+"),
+                    "compliance_status": data.get("executive_summary", {}).get("compliance_status", "COMPLIANT"),
                     "risk_level": data.get("security_assessment", {}).get("risk_level", "LOW"),
                     "risk_score": data.get("security_assessment", {}).get("risk_score", 0),
                     "pdf_url": f"/api/reports/{data.get('report_id')}/pdf"

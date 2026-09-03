@@ -125,24 +125,24 @@ def perform_encrypted_traffic_analysis(features):
     # Fixed audio frame cadence (G.711 / Opus), tightly bound in 130-260B, low std dev (< 45B)
     if 130 <= avg_len <= 260 and std_len < 45 and ratio_small >= 0.85:
         category = "VoIP / Real-Time Voice Stream (RTP over IPsec)"
-        pattern = f"Fixed-Cadence Audio Sizing ({ratio_small*100:.0f}% < 250B, Mean: {avg_len:.0f}B)"
-        confidence = round(min(98.5, 92.0 + (1.0 - min(1.0, std_len / 45.0)) * 6.0), 1)
+        pattern = f"Fixed-Rate Isochronous Sizing (Mean: {avg_len:.1f}B, Std: {std_len:.1f}B)"
+        confidence = round(min(85.0, 75.0 + ratio_small * 10.0), 1)
         behavior = f"Encrypted stream exhibits real-time VoIP characteristics: tightly clustered frame sizes (Mean {avg_len:.1f}B, Std Dev {std_len:.1f}B) matching periodic 20ms audio codec sampling (G.711 / Opus)."
 
-    # 2. Bulk Data Transfer / Database Sync / Cloud Backup:
+    # 2. Large Frame / MTU-Saturating Data Flow:
     # Dominated by Maximum Transmission Unit (MTU) packets >= 1100B
     elif ratio_mtu >= 0.65 or (avg_len >= 1100 and ratio_mtu >= 0.50):
-        category = "Bulk Data Transfer / Cloud Storage / DB Sync"
-        pattern = f"MSS/MTU-Saturating Continuous Egress ({ratio_mtu*100:.0f}% >= 1100B)"
-        confidence = round(min(99.2, 93.0 + ratio_mtu * 6.0), 1)
-        behavior = f"High density of MTU/MSS saturating ESP frames ({ratio_mtu*100:.1f}% packets >= 1100B, Mean {avg_len:.1f}B) indicative of enterprise bulk transfer, file upload, or database replication."
+        category = "High-Throughput / Large-Frame Profile (Traffic-Shape Heuristic)"
+        pattern = f"Traffic-Shape Sizing Profile ({ratio_mtu*100:.0f}% >= 1100B)"
+        confidence = 55.0
+        behavior = f"Traffic-shape heuristic (not an application identification): Observed traffic consists predominantly of large/MTU-sized frames (Mean {avg_len:.1f}B, {ratio_mtu*100:.1f}% >= 1100B). Sizing pattern reflects aggregate high-throughput or bulk data shape across the tunnel. Individual application identity cannot be determined without inner payload decryption."
 
     # 3. Adaptive Video Stream / Video Conferencing (H.264/H.265 over ESP):
     # High burstiness with multi-modal distribution (I-frame bursts near MTU interleaved with delta frames)
     elif (burst_idx >= 0.35 or std_len >= 180) and (ratio_mtu >= 0.10 and (ratio_medium >= 0.20 or ratio_small >= 0.15)):
         category = "Adaptive Video Stream / Video Conferencing"
         pattern = f"Variable Bitrate Multi-Frame Video Bursts (Burstiness: {burst_idx})"
-        confidence = round(min(97.5, 90.0 + min(7.0, burst_idx * 7.0)), 1)
+        confidence = round(min(82.0, 72.0 + min(10.0, burst_idx * 10.0)), 1)
         behavior = f"Bimodal and burst-oriented packet distribution (Burstiness index {burst_idx}, Std Dev {std_len:.1f}B) characteristic of compressed video conferencing or streaming."
 
     # 4. Interactive Remote Shell / Terminal Stream:
@@ -150,7 +150,7 @@ def perform_encrypted_traffic_analysis(features):
     elif avg_len < 160 and ratio_small >= 0.90:
         category = "Interactive Remote Shell / Terminal Stream"
         pattern = f"Asynchronous Keystroke & Echo ({ratio_small*100:.0f}% < 250B)"
-        confidence = round(min(98.0, 91.0 + ratio_small * 7.0), 1)
+        confidence = round(min(84.0, 74.0 + ratio_small * 10.0), 1)
         behavior = f"Stream composed almost exclusively of lightweight packets (Mean {avg_len:.1f}B) consistent with interactive CLI terminal keystrokes and shell administration."
 
     # 5. Web API / REST / Transactional Traffic:
@@ -158,22 +158,40 @@ def perform_encrypted_traffic_analysis(features):
     elif 280 <= avg_len <= 950:
         category = "Web API Services / Transactional REST Traffic"
         pattern = f"Client-Server Request-Response Sizing (Mean: {avg_len:.1f}B)"
-        confidence = 93.5
+        confidence = 78.5
         behavior = f"Moderate packet length distribution (Mean: {avg_len:.1f}B, Std Dev: {std_len:.1f}B, Range: {min_len}-{max_len}B) consistent with transactional client-server requests or web services."
 
     # 6. Standard Multiplexed Tunnel Baseline:
     else:
         category = "Multiplexed Enterprise VPN Tunnel Flow"
         pattern = f"Heterogeneous Distribution (Mean: {avg_len:.1f}B, Std: {std_len:.1f}B)"
-        confidence = 88.0
+        confidence = 72.0
         behavior = f"Aggregate multiplexed ESP flow with variable frame sizing (Mean: {avg_len:.1f}B, Std Dev: {std_len:.1f}B, Range: {min_len}-{max_len}B)."
+
+    # Check if there is heterogeneous/suspicious traffic mixed into the capture
+    esp_count = sum(1 for f in features if f.get("esp"))
+    ike_count = sum(1 for f in features if f.get("ike_candidate"))
+    suspicious_count = sum(1 for f in features if f.get("spi") and str(f.get("spi")).lower().startswith("0xdead"))
+
+    if suspicious_count > 0:
+        confidence = min(confidence, 50.0)
+        limitation = (
+            f"Capture contains mixed traffic ({esp_count} ESP encrypted frames, {ike_count} IKE control frames, and {suspicious_count} probe-like frames). "
+            f"Traffic-shape heuristic reflects aggregate packet-length distribution across multiplexed tunnel traffic, not application-layer identification."
+        )
+    else:
+        limitation = "Application protocol cannot be definitively verified from encrypted ESP ciphertext; classification represents a statistical traffic-shape heuristic only."
+    behavior = f"{behavior} Note: {limitation}"
 
     print(f"[ETA_ANALYZER] Profiled {total_pkts} frames (Mean: {avg_len:.1f}B, Std: {std_len:.1f}B, Small%: {ratio_small*100:.1f}%, MTU%: {ratio_mtu*100:.1f}%) => Category: [{category}] ({confidence}%)")
 
     return {
-        "application_category": category,
+        "application_category": f"Heuristic: {category}",
         "traffic_pattern": pattern,
         "eta_confidence": confidence,
+        "evidence_level": "Model/Heuristic",
+        "classification_basis": "Metadata/traffic-pattern analysis of encrypted traffic",
+        "limitation": limitation,
         "avg_packet_size_bytes": round(avg_len, 1),
         "packet_size_std_dev": round(std_len, 1),
         "burstiness_index": burst_idx,

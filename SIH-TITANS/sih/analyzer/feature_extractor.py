@@ -73,11 +73,11 @@ def extract_packet_features(packet, packet_number, base_time=None):
         features["dst_ip"] = str(ip.dst)
         ip_payload = bytes(ip.payload)
 
-    # 1. IPsec ESP (Protocol 50) - Native L3 Encapsulation
-    if packet.haslayer(ESP) or features["ip_protocol_number"] == 50:
+    # 1. IPsec ESP (Protocol 50) - Native L3 Encapsulation (Non-UDP)
+    if (features["ip_protocol_number"] == 50) or (packet.haslayer(ESP) and not packet.haslayer(UDP)):
         features["esp"] = True
         features["transport_protocol"] = "ESP"
-        features["app_protocol"] = "IPsec ESP"
+        features["app_protocol"] = "IPsec ESP (Protocol 50)"
         
         esp_payload_data = b""
         if packet.haslayer(ESP):
@@ -150,17 +150,33 @@ def extract_packet_features(packet, packet_number, base_time=None):
         features["dst_port"] = int(packet[UDP].dport)
 
         # RFC 3948: NAT-T UDP 4500 Disambiguation (IKE vs Encapsulated ESP)
-        if (features["src_port"] == 4500 or features["dst_port"] == 4500) and len(payload_bytes) >= 8:
+        if (features["src_port"] == 4500 or features["dst_port"] == 4500):
             if payload_bytes.startswith(b"\x00\x00\x00\x00"):
                 # Non-ESP Marker present -> IKE negotiation over NAT-T
                 features["ike_candidate"] = True
                 features["app_protocol"] = "IKEv2 / NAT-T"
                 features["info"] = "IKE Key Exchange over UDP 4500 (Non-ESP Marker)"
-            else:
+            elif packet.haslayer(ESP):
+                esp_layer = packet[ESP]
+                features["esp"] = True
+                features["is_natt"] = True
+                features["transport_protocol"] = "ESP"
+                features["app_protocol"] = "IPsec ESP (NAT-T / UDP 4500)"
+                if hasattr(esp_layer, "spi"):
+                    features["spi"] = f"0x{esp_layer.spi:08x}"
+                if hasattr(esp_layer, "seq"):
+                    features["seq_num"] = int(esp_layer.seq)
+                esp_data = bytes(esp_layer.data) if hasattr(esp_layer, "data") and esp_layer.data else bytes(esp_layer)[8:]
+                features["payload_length"] = len(esp_data)
+                features["shannon_entropy"] = calculate_shannon_entropy(esp_data)
+                features["info"] = f"NAT-T ESP Payload (SPI: {features['spi']}, Seq: {features['seq_num']})"
+                return features
+            elif len(payload_bytes) >= 8:
                 # Non-ESP Marker absent -> First 4 bytes are SPI (RFC 3948 ESP in UDP)
                 try:
                     spi_val, seq_val = struct.unpack("!II", payload_bytes[:8])
                     features["esp"] = True
+                    features["is_natt"] = True
                     features["transport_protocol"] = "ESP"
                     features["app_protocol"] = "IPsec ESP (NAT-T / UDP 4500)"
                     features["spi"] = f"0x{spi_val:08x}"

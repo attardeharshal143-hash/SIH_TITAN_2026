@@ -67,8 +67,8 @@ def create_pdf_report(report_data, output_pdf_path):
     pdf.set_xy(14, 22.5)
     pdf.cell(90, 4.5, f"Report ID: {sanitize_pdf_str(report_data.get('report_id', 'N/A'))}", ln=False)
     pdf.cell(85, 4.5, f"Compliance: {sanitize_pdf_str(report_data.get('executive_summary', {}).get('compliance_status', 'COMPLIANT'))}", ln=True)
-    pdf.set_x(14)
-    pdf.cell(90, 4.5, f"Target File: {sanitize_pdf_str(report_data.get('pcap_file', 'traffic.pcap'))}", ln=False)
+    pcap_basename = Path(report_data.get('pcap_file', 'traffic.pcap')).name
+    pdf.cell(90, 4.5, f"Target File: {sanitize_pdf_str(pcap_basename)}", ln=False)
     pdf.cell(85, 4.5, f"Timestamp: {sanitize_pdf_str(report_data.get('generated_date_str', 'Recently'))}", ln=True)
 
     pdf.ln(9)
@@ -106,11 +106,15 @@ def create_pdf_report(report_data, output_pdf_path):
     
     pdf.set_font("Helvetica", "B", 9.5)
     pdf.set_text_color(40, 50, 70)
-    pdf.cell(75, 9, f"Risk Index: {risk_score} / 100 ({risk_level})", ln=False)
+    pdf.cell(75, 9, f"Protocol Risk Index: {risk_score} / 100 ({risk_level})*", ln=False)
     pdf.set_font("Helvetica", "I", 8.5)
     pdf.cell(63, 9, f"Traffic: {'IPsec Encapsulated' if is_ipsec else 'Standard Non-VPN'}", ln=True, align="R")
 
-    pdf.ln(5)
+    pdf.set_font("Helvetica", "I", 6.8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.set_x(10)
+    pdf.cell(0, 3.5, "*Score evaluates observed packet hygiene in this capture window; it does not constitute a full system or organizational audit.", ln=True)
+    pdf.ln(2)
 
     # 2. Cryptographic Security & Posture
     pdf.set_font("Helvetica", "B", 10.5)
@@ -131,42 +135,82 @@ def create_pdf_report(report_data, output_pdf_path):
     pdf.cell(95, 4.5, f"- Inferred Cipher: {sanitize_pdf_str(cipher_name[:45])}", ln=True)
     
     pdf.set_x(10)
-    pdf.cell(95, 4.5, f"- Payload Encryption: {'Enforced (ESP Protocol 50)' if esp_pkts > 0 else 'None (Unencrypted / Plaintext)'}", ln=False)
+    native_esp_cnt = summary.get("native_esp_packets", 0)
+    natt_esp_cnt = summary.get("natt_esp_packets", 0)
+    if natt_esp_cnt > 0 and native_esp_cnt == 0:
+        enc_label = "Enforced (NAT-T ESP-in-UDP)"
+    elif native_esp_cnt > 0 and natt_esp_cnt == 0:
+        enc_label = "Enforced (Native ESP Protocol 50)"
+    elif esp_pkts > 0:
+        enc_label = f"Enforced ({native_esp_cnt} Native, {natt_esp_cnt} NAT-T)"
+    else:
+        enc_label = "None (Unencrypted / Plaintext)"
+    pdf.cell(95, 4.5, f"- Payload Encryption: {enc_label}", ln=False)
     pqc_val = pqc.get('pqc_score')
     pqc_str = f"{pqc_val}% ({pqc.get('pqc_status', 'N/A')})" if pqc_val is not None else (pqc.get('pqc_status', 'Indeterminate') if is_ipsec else 'N/A (Non-VPN)')
     pdf.cell(95, 4.5, f"- PQC Readiness: {sanitize_pdf_str(pqc_str[:45])}", ln=True)
     
     pdf.set_x(10)
     pdf.cell(95, 4.5, f"- Auth / ICV Tag: {sanitize_pdf_str(icv_tag[:45])}", ln=False)
-    pdf.cell(95, 4.5, f"- Anti-Replay: {sanitize_pdf_str(anti_replay.get('sequence_integrity', 'N/A')[:45])}", ln=True)
+    anti_replay_label = f"VULNERABLE ({anti_replay.get('duplicate_sequences', 0)} duplicate pkts across {anti_replay.get('distinct_sequence_values', 3)} seq values)" if anti_replay.get('duplicate_sequences', 0) > 0 else anti_replay.get('sequence_integrity', 'N/A')
+    pdf.cell(95, 4.5, f"- Anti-Replay: {sanitize_pdf_str(anti_replay_label[:55])}", ln=True)
 
-    pdf.set_x(10)
-    pdf.cell(190, 4.5, f"- Active SPIs: {sanitize_pdf_str(spi_text[:80])}", ln=True)
+    dup_details = anti_replay.get("duplicate_details", [])
+    if dup_details:
+        pdf.set_font("Helvetica", "I", 7.0)
+        pdf.set_text_color(185, 28, 28)
+        pdf.set_x(10)
+        dup_text = " | ".join([
+            f"SA {d.get('spi')}: " + ", ".join([f"Seq {item['sequence']} (x{item['duplicate_count']} dup{'s' if item['duplicate_count'] > 1 else ''})" for item in d.get('duplicate_items', [])]) if d.get('duplicate_items') else f"SA {d.get('spi')}: Seqs {', '.join(map(str, d.get('duplicate_sequences', [])))}"
+            for d in dup_details
+        ])
+        pdf.multi_cell(190, 3.8, f"* Duplicates Logged: {anti_replay.get('duplicate_sequences', 0)} duplicate packets across {anti_replay.get('distinct_sequence_values', 3)} distinct sequence values: {sanitize_pdf_str(dup_text)}")
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(30, 40, 60)
 
-    # Render Per-SA Partitioned Multi-Tunnel Table in PDF if multiple SAs
     sas = report_data.get("security_associations", [])
-    if len(sas) > 1:
+    established_spis = [s for s in report_data.get("established_security_associations", [])]
+    suspicious_sas = [s for s in report_data.get("suspicious_security_associations", [])]
+    if not established_spis and sas:
+        established_spis = [s for s in sas if not s.get("is_suspicious")]
+        suspicious_sas = [s for s in sas if s.get("is_suspicious")]
+
+    active_spi_names = ", ".join([s.get("spi", "") for s in established_spis]) or "None"
+    pdf.set_x(10)
+    pdf.cell(190, 4.5, f"- Active Established SPIs: {sanitize_pdf_str(active_spi_names[:80])}", ln=True)
+
+    if suspicious_sas:
+        pdf.set_x(10)
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_text_color(185, 28, 28)
+        susp_preview = ", ".join([s.get("spi", "") for s in suspicious_sas[:6]])
+        pdf.multi_cell(190, 3.8, f"- Unrecognized ESP SPI / Probe-like Traffic: {len(suspicious_sas)} unrecognized SPIs ({susp_preview}...; {sum(s.get('packet_count', 0) for s in suspicious_sas)} frames; no corresponding IKE negotiation observed in this capture trace)")
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(30, 40, 60)
+
+    # Render Per-SA Partitioned Multi-Tunnel Table in PDF for Established SAs
+    if len(established_spis) > 1 or (len(established_spis) == 1 and suspicious_sas):
         pdf.ln(2)
         pdf.set_font("Helvetica", "B", 7.5)
         pdf.set_fill_color(230, 238, 248)
         pdf.set_text_color(20, 35, 60)
         pdf.set_x(10)
-        pdf.cell(26, 4.5, "SPI (SA)", border=1, fill=True)
-        pdf.cell(44, 4.5, "Endpoints", border=1, fill=True)
-        pdf.cell(42, 4.5, "Inferred Cipher", border=1, fill=True)
-        pdf.cell(20, 4.5, "PQC Grade", border=1, fill=True, align="C")
-        pdf.cell(58, 4.5, "ETA Application Classification", border=1, fill=True, ln=True)
+        pdf.cell(22, 4.5, "SPI (SA)", border=1, fill=True)
+        pdf.cell(56, 4.5, "Endpoints", border=1, fill=True)
+        pdf.cell(40, 4.5, "Inferred Cipher", border=1, fill=True)
+        pdf.cell(18, 4.5, "PQC Grade", border=1, fill=True, align="C")
+        pdf.cell(54, 4.5, "ETA Application Classification", border=1, fill=True, ln=True)
 
-        for sa in sas:
-            pdf.set_font("Helvetica", "", 7.5)
+        for sa in established_spis:
+            pdf.set_font("Helvetica", "", 7.2)
             pdf.set_text_color(40, 40, 40)
             pdf.set_x(10)
-            pdf.cell(26, 4, sanitize_pdf_str(sa.get("spi", "")[:12]), border=1)
-            pdf.cell(44, 4, sanitize_pdf_str(sa.get("endpoints", "")[:24]), border=1)
-            pdf.cell(42, 4, sanitize_pdf_str(sa.get("inferred_cipher", "")[:22]), border=1)
-            pdf.cell(20, 4, f"{sa.get('pqc_score', 0)}%", border=1, align="C")
+            pdf.cell(22, 4, sanitize_pdf_str(sa.get("spi", "")[:12]), border=1)
+            pdf.cell(56, 4, sanitize_pdf_str(sa.get("endpoints", "")), border=1)
+            pdf.cell(40, 4, sanitize_pdf_str(sa.get("inferred_cipher", "")[:22]), border=1)
+            pdf.cell(18, 4, f"{sa.get('pqc_score', 0)}%", border=1, align="C")
             eta_name = sa.get("eta_profile", {}).get("application_category", "Standard Flow")
-            pdf.cell(58, 4, sanitize_pdf_str(eta_name[:34]), border=1, ln=True)
+            pdf.cell(54, 4, sanitize_pdf_str(eta_name[:32]), border=1, ln=True)
         pdf.ln(2)
     else:
         pdf.ln(3)
@@ -189,7 +233,7 @@ def create_pdf_report(report_data, output_pdf_path):
 
     def add_table_row(name, count, is_enc=False):
         pct = f"{(count / total_pkts * 100):.1f}%" if total_pkts > 0 else "0.0%"
-        cls_text = "Encrypted (Secure)" if is_enc else "Cleartext / Control"
+        cls_text = "Encrypted Payload" if is_enc else "Cleartext / Control"
         pdf.set_font("Helvetica", "", 8.5)
         pdf.set_text_color(40, 40, 40)
         pdf.set_x(10)
@@ -198,9 +242,30 @@ def create_pdf_report(report_data, output_pdf_path):
         pdf.cell(40, 5, pct, border=1, align="C")
         pdf.cell(50, 5, cls_text, border=1, align="C", ln=True)
 
-    add_table_row("ESP Payload Encryption (Protocol 50)", esp_pkts, True)
-    add_table_row("Authentication Header AH (Protocol 51)", ah_pkts, False)
-    add_table_row("IKE / NAT-T (UDP Port 500 / 4500)", ike_pkts, False)
+    native_esp = summary.get("native_esp_packets", 0)
+    natt_esp = summary.get("natt_esp_packets", 0)
+    ike_500 = summary.get("ike_port_500", 0)
+    ike_4500 = summary.get("ike_port_4500", 0)
+
+    if native_esp > 0 and natt_esp > 0:
+        add_table_row("Native IPsec ESP (IP Protocol 50)", native_esp, True)
+        add_table_row("NAT-T Encapsulated ESP (UDP Port 4500)", natt_esp, True)
+    elif natt_esp > 0:
+        add_table_row("NAT-T Encapsulated ESP (UDP Port 4500)", natt_esp, True)
+    elif native_esp > 0 or esp_pkts > 0:
+        add_table_row("Native IPsec ESP (IP Protocol 50)", esp_pkts, True)
+
+    if ah_pkts > 0:
+        add_table_row("Authentication Header AH (Protocol 51)", ah_pkts, False)
+
+    if ike_500 > 0 and ike_4500 > 0:
+        add_table_row("IKE Key Exchange (UDP Port 500)", ike_500, False)
+        add_table_row("IKE NAT-T Key Exchange (UDP Port 4500)", ike_4500, False)
+    elif ike_4500 > 0:
+        add_table_row("IKE NAT-T Key Exchange (UDP Port 4500)", ike_4500, False)
+    elif ike_pkts > 0:
+        add_table_row("IKE Key Exchange (UDP Port 500)", ike_pkts, False)
+
     add_table_row("DNS Resolution Queries (UDP Port 53)", dns_pkts, False)
     add_table_row("Other UDP Datagrams (Non-VPN / Transport)", udp_pkts, False)
     add_table_row("TCP Transport Streams", tcp_pkts, False)
@@ -214,7 +279,7 @@ def create_pdf_report(report_data, output_pdf_path):
     pdf.cell(70, 5.5, "TOTAL CAPTURED TRAFFIC", border=1)
     pdf.cell(30, 5.5, str(total_pkts), border=1, align="C")
     pdf.cell(40, 5.5, "100.0%", border=1, align="C")
-    pdf.cell(50, 5.5, "Full Network Stream", border=1, align="C", ln=True)
+    pdf.cell(50, 5.5, "Captured Traffic Trace", border=1, align="C", ln=True)
 
     pdf.ln(4)
 
@@ -245,13 +310,13 @@ def create_pdf_report(report_data, output_pdf_path):
         pdf.set_font("Helvetica", "I", 8.5)
         pdf.set_text_color(60, 60, 60)
         pdf.set_x(10)
-        pdf.cell(0, 5, "No adversary tactics or active tunnel exfiltration techniques detected in this capture stream.", ln=True)
+        pdf.cell(0, 5, "No adversary tactics or active tunnel exfiltration techniques were observed within this specific capture window (absence of evidence in a captured trace does not prove the absence of adversarial activity).", ln=True)
     else:
         for m in mitre:
             pdf.set_font("Helvetica", "B", 8.5)
             pdf.set_text_color(180, 20, 20)
             pdf.set_x(10)
-            pdf.cell(0, 4.5, f"[{m.get('technique_id')}] {sanitize_pdf_str(m.get('technique_name'))} ({m.get('tactic')}) - Severity: {m.get('severity')}", ln=True)
+            pdf.cell(0, 4.5, sanitize_pdf_str(f"[{m.get('technique_id')}] {m.get('technique_name')} ({m.get('tactic')}) - Severity: {m.get('severity')}"), ln=True)
             pdf.set_font("Helvetica", "", 8)
             pdf.set_text_color(40, 40, 40)
             pdf.set_x(14)
@@ -294,7 +359,10 @@ def create_pdf_report(report_data, output_pdf_path):
         pdf.ln(3)
         pdf.set_font("Helvetica", "B", 10.5)
         pdf.set_text_color(15, 30, 65)
-        pdf.cell(0, 5.5, "7. HARDENED CONFIGURATION REMEDIATION (STRONGSWAN / CISCO)", ln=True)
+        pdf.cell(0, 5.5, "7. REFERENCE HARDENED CONFIGURATION EXAMPLE (STRONGSWAN / CISCO)", ln=True)
+        pdf.set_font("Helvetica", "I", 7.5)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(0, 4, "Illustrative reference example only. Deployment applicability must be validated against organizational policy.", ln=True)
         
         pdf.set_font("Courier", "", 7.5)
         pdf.set_fill_color(240, 244, 250)
